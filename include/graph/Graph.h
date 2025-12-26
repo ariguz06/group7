@@ -21,15 +21,13 @@ public:
 
     static AdjMap get_star(const AdjMap& h, unsigned long vertex);
 
-    static unsigned long get_min_degree(const AdjMap &g);
-
     static unsigned long treewidth(TreeDecompBags& bags);
 
     [[nodiscard]] std::vector<unsigned long> bfs_traversal(unsigned long start);
 
     std::set<unsigned long> get_neighbors(unsigned long vertex);
 
-    AdjMap min_degree_elim(const AdjMap& g, unsigned long vertex);
+    void min_degree_elim(AdjMap& g, unsigned long vertex);
 
     void cache_attributes();
 

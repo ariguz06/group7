@@ -108,7 +108,7 @@ std::set<unsigned long> Graph::get_neighbors(const unsigned long vertex) {
     return neighbors;
 }
 
-Graph::AdjMap Graph::get_star(const AdjMap& h, unsigned long vertex) {
+Graph::AdjMap Graph::get_star(const AdjMap& h, const unsigned long vertex) {
     if (!h.contains(vertex)) {
         throw std::runtime_error("Vertex " + std::to_string(vertex) + " does not exist in graph");
     }
@@ -120,39 +120,20 @@ Graph::AdjMap Graph::get_star(const AdjMap& h, unsigned long vertex) {
     return map;
 }
 
-
-unsigned long Graph::get_min_degree(const AdjMap &g) {
-    MinHeap minHeap;
-
-    // Initialize heap with all vertices and their degrees
-    for (const auto &[vertex, edges] : g) {
-        minHeap.insert(vertex, edges.size());
-    }
-
-    // Extract the minimum degree vertex
-    if (!minHeap.empty()) {
-        return minHeap.extract_min();
-    }
-
-    throw std::runtime_error("Graph is empty; no minimum degree vertex found.");
-}
-
-Graph::AdjMap Graph::min_degree_elim(const AdjMap &g, const unsigned long vertex) {
-    AdjMap h = g;
+void Graph::min_degree_elim(AdjMap &g, const unsigned long vertex) {
     const std::set<unsigned long> neighbors = get_neighbors(vertex);
 
     for (const auto u : neighbors) {
         for (const auto w : neighbors) {
 
-            // Find weight of (u, vertex)
             auto weight_u_v_it = std::ranges::find_if(adj.at(u),
                                                       [vertex](const Edge &e) { return e.to == vertex; });
             if (weight_u_v_it == adj.at(u).end()) {
                 throw std::runtime_error("Error finding weight from u to vertex");
             }
-            unsigned long weight_u_v = weight_u_v_it->w;
+            const unsigned long weight_u_v = weight_u_v_it->w;
 
-            // Find weight of (vertex, w)
+
             auto weight_v_w_it = std::ranges::find_if(adj.at(vertex),
                                                       [w](const Edge &e) { return e.to == w; });
             if (weight_v_w_it == adj.at(vertex).end()) {
@@ -160,21 +141,21 @@ Graph::AdjMap Graph::min_degree_elim(const AdjMap &g, const unsigned long vertex
             }
             const unsigned long weight_v_w = weight_v_w_it->w;
 
-            auto existing_edge_it = std::ranges::find_if(h[u],
+            auto existing_edge_it = std::ranges::find_if(g[u],
                                                          [w](const Edge &e) { return e.to == w; });
 
-            if (existing_edge_it == h[u].end()) {
-                h[u].push_back({w, weight_u_v + weight_v_w});
-                h[w].push_back({u, weight_u_v + weight_v_w});
+            if (existing_edge_it == g[u].end()) {
+                g[u].push_back({w, weight_u_v + weight_v_w});
+                g[w].push_back({u, weight_u_v + weight_v_w});
                 all_edges.insert(std::make_tuple(u, w));
                 all_edges.insert(std::make_tuple(w, u));
             } else {
                 if (weight_u_v + weight_v_w < existing_edge_it->w) {
                     existing_edge_it->w = weight_u_v + weight_v_w;
 
-                    auto reverse_edge_it = std::ranges::find_if(h[w],
+                    auto reverse_edge_it = std::ranges::find_if(g[w],
                                                                 [u](const Edge &e) { return e.to == u; });
-                    if (reverse_edge_it != h[w].end()) {
+                    if (reverse_edge_it != g[w].end()) {
                         reverse_edge_it->w = weight_u_v + weight_v_w;
                     }
                 }
@@ -182,19 +163,17 @@ Graph::AdjMap Graph::min_degree_elim(const AdjMap &g, const unsigned long vertex
         }
     }
 
-    h.erase(vertex);
+    g.erase(vertex);
     for (auto neighbor : neighbors) {
-        auto &outward_edges = h[neighbor];
+        auto &outward_edges = g[neighbor];
         std::erase_if(outward_edges, [vertex](const Edge &e){ return e.to == vertex; });
     }
-
-    return h;
 }
 
 std::tuple<Graph::TreeDecompAdj, Graph::TreeDecompBags, unsigned long> Graph::get_td() {
     auto h = adj;
 
-    std::unordered_map<unsigned long, unsigned long> ordering;
+    std::vector<unsigned long> ordering(adj.size());
 
     unsigned long root = 0;
     unsigned long step = 0;
@@ -203,11 +182,9 @@ std::tuple<Graph::TreeDecompAdj, Graph::TreeDecompBags, unsigned long> Graph::ge
 
     MinHeap minHeap;
 
-    for (const auto &[v, edges] : adj) {
+    for (const auto &[v, edges]: adj) {
         minHeap.insert(v, edges.size());
     }
-
-    auto removed = std::set<unsigned long>();
 
     for (int i = 0; i < adj.size(); i++) {
         unsigned long v_min_degree = minHeap.extract_min();
@@ -215,7 +192,7 @@ std::tuple<Graph::TreeDecompAdj, Graph::TreeDecompBags, unsigned long> Graph::ge
         td_bags[v_min_degree] = get_star(h, v_min_degree);
 
         ordering[v_min_degree] = step++;
-        h = min_degree_elim(h, v_min_degree);
+        min_degree_elim(h, v_min_degree);
 
         if (i % 1000 == 0) {
             std::cout << "Finished bag " << i << std::endl;
@@ -232,8 +209,8 @@ std::tuple<Graph::TreeDecompAdj, Graph::TreeDecompBags, unsigned long> Graph::ge
 
         for (const auto &vertex_id: bag | std::views::keys) {
             if (vertex_id == v) continue;
-            if (auto it = ordering.find(vertex_id); it != ordering.end() && it->second < min_ordering_val) {
-                min_ordering_val = it->second;
+            if (ordering[vertex_id] < min_ordering_val) {
+                min_ordering_val = ordering[vertex_id];
                 min_ordering_vertex = vertex_id;
             }
         }

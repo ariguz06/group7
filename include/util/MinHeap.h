@@ -55,8 +55,8 @@ public:
     }
 
     // Update the degree of a vertex in the heap
-    void update(unsigned long vertex, unsigned long new_degree) {
-        if (id_to_index.find(vertex) == id_to_index.end()) {
+    void update(const unsigned long vertex, unsigned long new_degree) {
+        if (!id_to_index.contains(vertex)) {
             return; // Vertex not found
         }
         size_t index = id_to_index[vertex];
@@ -70,7 +70,7 @@ public:
             throw std::runtime_error("Heap is empty");
         }
 
-        unsigned long min_vertex = heap[0].first;
+        const unsigned long min_vertex = heap[0].first;
         swap_elements(0, heap.size() - 1);
         heap.pop_back();
         id_to_index.erase(min_vertex);
