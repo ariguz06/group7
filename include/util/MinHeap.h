@@ -23,7 +23,7 @@ class MinHeap {
         }
     }
 
-    void heapify_down(size_t index) {
+    void heapify_down(const size_t index) {
         size_t smallest = index;
         const size_t left = 2 * index + 1;
         const size_t right = 2 * index + 2;
@@ -48,6 +48,11 @@ class MinHeap {
     }
 
 public:
+
+    void reserve(const size_t size) {
+        heap.reserve(size);
+    }
+
     void insert(unsigned long vertex, unsigned long degree) {
         heap.emplace_back(vertex, degree);
         id_to_index[vertex] = heap.size() - 1;
@@ -59,7 +64,7 @@ public:
         if (!id_to_index.contains(vertex)) {
             return; // Vertex not found
         }
-        size_t index = id_to_index[vertex];
+        const size_t index = id_to_index[vertex];
         heap[index].second = new_degree;
         heapify_up(index);
         heapify_down(index);

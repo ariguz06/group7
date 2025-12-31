@@ -97,22 +97,16 @@ void Graph::cache_attributes() {
     }
 }
 
-std::set<unsigned long> Graph::get_neighbors(const unsigned long vertex) {
-    std::set<unsigned long> neighbors;
+std::vector<unsigned long> Graph::get_neighbors(const unsigned long vertex) {
+    std::vector<unsigned long> neighbors;
     for (const auto &[v, w] : adj.at(vertex)) {
-        if (!neighbors.contains(v)) {
-            neighbors.insert(v);
-        }
+        neighbors.push_back(v);
     }
 
     return neighbors;
 }
 
 Graph::AdjMap Graph::get_star(const AdjMap& h, const unsigned long vertex) {
-    if (!h.contains(vertex)) {
-        throw std::runtime_error("Vertex " + std::to_string(vertex) + " does not exist in graph");
-    }
-
     auto map = std::unordered_map<unsigned long, std::vector<Edge>>();
     map[vertex] = h.at(vertex);
     map[vertex].push_back({vertex, 0});
@@ -121,26 +115,22 @@ Graph::AdjMap Graph::get_star(const AdjMap& h, const unsigned long vertex) {
 }
 
 void Graph::min_degree_elim(AdjMap &g, const unsigned long vertex) {
-    const std::set<unsigned long> neighbors = get_neighbors(vertex);
+    const std::vector<unsigned long> neighbors = get_neighbors(vertex);
 
     for (const auto u : neighbors) {
         for (const auto w : neighbors) {
 
-            auto weight_u_v_it = std::ranges::find_if(adj.at(u),
+            if (u == w) continue;
+
+            const auto weight_u_v_it = std::ranges::find_if(adj.at(u),
                                                       [vertex](const Edge &e) { return e.to == vertex; });
-            if (weight_u_v_it == adj.at(u).end()) {
-                throw std::runtime_error("Error finding weight from u to vertex");
-            }
             const unsigned long weight_u_v = weight_u_v_it->w;
 
 
-            auto weight_v_w_it = std::ranges::find_if(adj.at(vertex),
+            const auto weight_v_w_it = std::ranges::find_if(adj.at(vertex),
                                                       [w](const Edge &e) { return e.to == w; });
-            if (weight_v_w_it == adj.at(vertex).end()) {
-                throw std::runtime_error("Error finding weight from vertex to w");
-            }
-            const unsigned long weight_v_w = weight_v_w_it->w;
 
+            const unsigned long weight_v_w = weight_v_w_it->w;
             auto existing_edge_it = std::ranges::find_if(g[u],
                                                          [w](const Edge &e) { return e.to == w; });
 
@@ -181,6 +171,7 @@ std::tuple<Graph::TreeDecompAdj, Graph::TreeDecompBags, unsigned long> Graph::ge
     td_adj.clear();
 
     MinHeap minHeap;
+    minHeap.reserve(adj.size());
 
     for (const auto &[v, edges]: adj) {
         minHeap.insert(v, edges.size());
@@ -194,7 +185,7 @@ std::tuple<Graph::TreeDecompAdj, Graph::TreeDecompBags, unsigned long> Graph::ge
         ordering[v_min_degree] = step++;
         min_degree_elim(h, v_min_degree);
 
-        if (i % 1000 == 0) {
+        if (i % 10000 == 0) {
             std::cout << "Finished bag " << i << std::endl;
         }
     }
@@ -207,11 +198,11 @@ std::tuple<Graph::TreeDecompAdj, Graph::TreeDecompBags, unsigned long> Graph::ge
         unsigned long min_ordering_val = std::numeric_limits<unsigned long>::max();
         unsigned long min_ordering_vertex = v;
 
-        for (const auto &vertex_id: bag | std::views::keys) {
-            if (vertex_id == v) continue;
-            if (ordering[vertex_id] < min_ordering_val) {
-                min_ordering_val = ordering[vertex_id];
-                min_ordering_vertex = vertex_id;
+        for (const auto &[to, w] : bag.at(v)) {
+            if (to == v) continue;
+            if (ordering[to] < min_ordering_val) {
+                min_ordering_val = ordering[to];
+                min_ordering_vertex = to;
             }
         }
 

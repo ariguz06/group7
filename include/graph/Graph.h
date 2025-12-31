@@ -25,7 +25,7 @@ public:
 
     [[nodiscard]] std::vector<unsigned long> bfs_traversal(unsigned long start);
 
-    std::set<unsigned long> get_neighbors(unsigned long vertex);
+    std::vector<unsigned long> get_neighbors(unsigned long vertex);
 
     void min_degree_elim(AdjMap& g, unsigned long vertex);
 

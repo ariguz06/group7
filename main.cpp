@@ -1,3 +1,4 @@
+#include <filesystem>
 #include <iostream>
 
 #include "include/graph/Graph.h"
@@ -6,11 +7,29 @@
 // TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
 int main() {
 
-    Graph graph = Graph::from_mtx("mtx/road-usroads-48.mtx", false, false);
     auto t = Timer();
 
+    std::vector<std::string> file_paths;
+
+    std::cout << "Select a graph: " << std::endl;
+    unsigned short index = 0;
+    for (const auto& filepath : std::filesystem::directory_iterator("mtx")) {
+        std::cout << filepath.path() << " " <<  "(" << index << ")" << std::endl;
+        file_paths.push_back(filepath.path());
+        index++;
+    }
+
+    std::cin >> index;
+
     t.start();
-    const std::vector<unsigned long> order = graph.bfs_traversal(7);
+    Graph graph = Graph::from_mtx(file_paths[index], false, false);
+    t.stop();
+
+    std::cout << "Graph construction time elapsed: " << t.elapsed() << std::endl;
+    t.reset();
+
+    t.start();
+    const std::vector<unsigned long> order = graph.bfs_traversal(2);
     t.stop();
 
     std::cout << "BFS time elapsed: " << t.elapsed() << " with size " << order.size() << std::endl;

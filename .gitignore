@@ -3,6 +3,8 @@
 *.d
 .idea
 
+./mtx/road-road-usa.mtx
+
 # Compiled Object files
 *.slo
 *.lo
