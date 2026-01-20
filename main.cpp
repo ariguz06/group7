@@ -38,8 +38,12 @@ int main() {
     auto td_metrics = graph.get_td();
     t.stop();
 
+    auto &td_adj = std::get<0>(td_metrics);
+    auto &td_bags = std::get<1>(td_metrics);
+    auto root = std::get<2>(td_metrics);
+
     std::cout << "Tree decomposition time elapsed: " << t.elapsed() << std::endl;
-    std::cout << "Treewidth: " << Graph::treewidth(std::get<1>(td_metrics));
+    std::cout << "Treewidth: " << Graph::treewidth(td_bags) << std::endl;
 
     return 0;
 }

@@ -5,7 +5,6 @@
 #include <utility>
 #include <fstream>
 #include <sstream>
-#include <iostream>
 #include <ranges>
 #include <list>
 #include <unordered_set>
@@ -14,6 +13,8 @@
 #include <vector>
 
 #include "../../include/graph/Graph.h"
+
+#include <iostream>
 
 Graph::Graph(AdjMap adj) : adj(std::move(adj)) {
     buckets.resize(2000);
@@ -155,6 +156,7 @@ void Graph::eliminate_vertex(const unsigned long v) {
 
     // erases vertex
     adj.erase(v);
+    num_vertices -= 1;
 
     // updates buckets after edge correction
     for (unsigned long neighbor : neighbors) {
@@ -187,66 +189,63 @@ unsigned long Graph::pop_min_degree_vertex() {
 bool Graph::edge_exists(const unsigned long u, const unsigned long v) {
     if (!adj.contains(u)) return false;
     if (!adj.contains(v)) return false;
-    return std::ranges::any_of(adj.at(u).begin(), adj.at(u).end(), [&](const Edge e) {return e.to == v;});
+    return std::ranges::any_of(adj[u].begin(), adj[u].end(), [&](const Edge e) {return e.to == v;});
 }
 
 unsigned long Graph::get_edge_weight(const unsigned long u, const unsigned long v) {
-
     if (u == v) return 0;
 
-    for (const auto& [to, w] : adj.at(u)) {
+    for (const auto& [to, w] : adj[u]) {
         if (to == v) return w;
     }
 
-    return -1;
+   return -1;
 }
 
 std::tuple<Graph::TreeDecompAdj, Graph::TreeDecompBags, unsigned long> Graph::get_td() {
     auto h = Graph(adj);
+    h.num_vertices = 2642;
     h.populate_buckets();
 
     std::vector<unsigned long> ordering(adj.size());
-
-    unsigned long root = 0;
 
     td_bags.clear();
     td_adj.clear();
 
     for (int i = 0; i < adj.size(); i++) {
-        unsigned long v = pop_min_degree_vertex();
-        td_bags[v] = get_star(v);
+        unsigned long v = h.pop_min_degree_vertex();
 
+        td_bags[v] = h.get_star(v);
         h.eliminate_vertex(v);
 
         ordering[v] = i;
-
-        if (i > 75000 && i % 100 == 0) std::cout << "Finished vertex " << i << std::endl;
     }
 
-    std::cout << "Finished ordering" << std::endl;
+    unsigned long root = std::numeric_limits<unsigned long>::max();
 
-    for (const auto& [v, bag] : td_bags) {
-        if (bag.empty()) continue;
+    for (unsigned long v = 0; v < ordering.size(); ++v) {
+        const auto& bag = td_bags.at(v);
 
-        unsigned long min_ordering_val = std::numeric_limits<unsigned long>::max();
-        unsigned long min_ordering_vertex = v;
+        if (bag.size() == 1) {
+            root = v;
+            continue;
+        }
 
-        for (const unsigned long vertex : bag) {
-            if (vertex == v) continue;
-            if (ordering[vertex] < min_ordering_val) {
-                min_ordering_val = ordering[vertex];
-                min_ordering_vertex = vertex;
+        unsigned long min_u = v;
+        unsigned long best = std::numeric_limits<unsigned long>::max();
+
+        for (unsigned long u : bag) {
+            if (u != v && ordering[u] < best) {
+                best = ordering[u];
+                min_u = u;
             }
         }
 
-        if (min_ordering_vertex != v) {
-            td_adj[min_ordering_vertex].push_back(v);
-            root = min_ordering_vertex;
-        }
+        td_adj[v].push_back(min_u);
+        td_adj[min_u].push_back(v);
     }
 
     for (auto &bag: td_bags | std::views::values) {
-        // sorts vertices in bag in decreasing order of ordering values
         std::ranges::sort(bag, [&](const unsigned long a, const unsigned long b) {return ordering[a] > ordering[b];});
     }
 
@@ -255,7 +254,6 @@ std::tuple<Graph::TreeDecompAdj, Graph::TreeDecompBags, unsigned long> Graph::ge
             td_weights[v].push_back(get_edge_weight(v, neighbor));
         }
     }
-
 
     return {td_adj, td_bags, root};
 }
