@@ -24,32 +24,32 @@ class Graphs : public testing::Test {
 
         adj[4].push_back(Edge(0, 1));
 
-        graph = Graph(adj);
+        graph = new Graph(adj);
     }
 
 protected:
     Graph::AdjMap adj;
-    Graph graph;
+    Graph* graph = new Graph(adj);
 };
 
 TEST_F(Graphs, EdgeExists) {
-    graph.populate_buckets();
-    EXPECT_TRUE(graph.edge_exists(0, 1));
-    EXPECT_TRUE(graph.edge_exists(2, 1));
-    EXPECT_TRUE(graph.edge_exists(2, 0));
-    EXPECT_TRUE(graph.edge_exists(3, 0));
-    EXPECT_TRUE(graph.edge_exists(4, 0));
+    graph->populate_buckets();
+    EXPECT_TRUE(graph->edge_exists(0, 1));
+    EXPECT_TRUE(graph->edge_exists(2, 1));
+    EXPECT_TRUE(graph->edge_exists(2, 0));
+    EXPECT_TRUE(graph->edge_exists(3, 0));
+    EXPECT_TRUE(graph->edge_exists(4, 0));
 
-    EXPECT_FALSE(graph.edge_exists(3, 2));
-    EXPECT_FALSE(graph.edge_exists(4, 3));
-    EXPECT_FALSE(graph.edge_exists(4, 1));
+    EXPECT_FALSE(graph->edge_exists(3, 2));
+    EXPECT_FALSE(graph->edge_exists(4, 3));
+    EXPECT_FALSE(graph->edge_exists(4, 1));
 }
 
 TEST_F(Graphs, PopMinDegree) {
     auto g = graph;
 
-    g.populate_buckets();
-    const unsigned long v = g.pop_min_degree_vertex();
+    g->populate_buckets();
+    const unsigned long v = g->pop_min_degree_vertex();
 
     EXPECT_NE(v, 0);
     EXPECT_NE(v, 2);
@@ -59,43 +59,43 @@ TEST_F(Graphs, PopMinDegree) {
 }
 
 TEST_F(Graphs, PopVertexNoEdgeFill) {
-    auto g = graph;
-    g.populate_buckets();
+    const auto g = graph;
+    g->populate_buckets();
 
-    unsigned long v = g.pop_min_degree_vertex();
-    g.eliminate_vertex(v);
+    unsigned long v = g->pop_min_degree_vertex();
+    g->eliminate_vertex(v);
 
     EXPECT_TRUE(v == 4 || v == 3);
 
     if (v == 3) {
-        EXPECT_FALSE(g.edge_exists(3, 0));
-        EXPECT_FALSE(g.edge_exists(0, 3));
+        EXPECT_FALSE(g->edge_exists(3, 0));
+        EXPECT_FALSE(g->edge_exists(0, 3));
 
-        v = g.pop_min_degree_vertex();
+        v = g->pop_min_degree_vertex();
 
-        EXPECT_FALSE(v == 4);
+        EXPECT_FALSE(v == 3);
 
     } else {
-        EXPECT_FALSE(g.edge_exists(4, 0));
-        EXPECT_FALSE(g.edge_exists(0, 4));
+        EXPECT_FALSE(g->edge_exists(4, 0));
+        EXPECT_FALSE(g->edge_exists(0, 4));
 
-        v = g.pop_min_degree_vertex();
+        v = g->pop_min_degree_vertex();
 
         EXPECT_FALSE(v == 4);
     }
 }
 
 TEST_F(Graphs, PopVertexEdgeFill) {
-    auto g = graph;
-    g.populate_buckets();
+    const auto g = graph;
+    g->populate_buckets();
 
-    EXPECT_FALSE(g.edge_exists(1, 4));
-    EXPECT_FALSE(g.edge_exists(4, 3));
-    EXPECT_FALSE(g.edge_exists(3, 2));
+    EXPECT_FALSE(g->edge_exists(1, 4));
+    EXPECT_FALSE(g->edge_exists(4, 3));
+    EXPECT_FALSE(g->edge_exists(3, 2));
 
-    g.eliminate_vertex(0);
+    g->eliminate_vertex(0);
 
-    EXPECT_TRUE(g.edge_exists(1, 4));
-    EXPECT_TRUE(g.edge_exists(4, 3));
-    EXPECT_TRUE(g.edge_exists(3, 2));
+    EXPECT_TRUE(g->edge_exists(1, 4));
+    EXPECT_TRUE(g->edge_exists(4, 3));
+    EXPECT_TRUE(g->edge_exists(3, 2));
 }

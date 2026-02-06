@@ -45,5 +45,10 @@ int main() {
     std::cout << "Tree decomposition time elapsed: " << t.elapsed() << std::endl;
     std::cout << "Treewidth: " << Graph::treewidth(td_bags) << std::endl;
 
+    const auto& h2h = graph.get_h2h();
+    const auto dis = graph.h2h_query(11, 2);
+
+    std::cout << dis << std::endl;
+
     return 0;
 }

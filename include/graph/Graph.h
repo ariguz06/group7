@@ -7,7 +7,6 @@
 #include <list>
 #include <unordered_map>
 #include <unordered_set>
-#include <set>
 
 #include "Edge.h"
 
@@ -18,7 +17,10 @@ public:
     using AdjMap = std::unordered_map<unsigned long, std::vector<Edge>>;
 
     using TreeDecompAdj = std::unordered_map<unsigned long, std::vector<unsigned long>>; // matrix of edges in TD. key denotes bag root v, edge to bag root u
-    using TreeDecompBags = std::unordered_map<unsigned long, std::vector<unsigned long>>; // key: bag root v, value: all vertices in X(v) but without weights
+    using TreeDecompBags = TreeDecompAdj; // key: bag root v, value: all vertices in X(v) but without weights
+
+    using Pos = std::unordered_map<unsigned long, std::vector<unsigned long>>;
+    using Dis = std::unordered_map<unsigned long, std::vector<unsigned long>>;
 
     // key v denotes X(v), value psi_i, where 0 <= i < |X(v)|  denotes weight of each vertex in X(v) to v
     // populated after sorting bags by ordering
@@ -30,46 +32,55 @@ public:
 
     static Graph from_mtx(const std::string &path, bool weighted=false, bool directed=false);
 
-    static unsigned long treewidth(TreeDecompBags& bags);
-
-    std::vector<unsigned long> get_star(unsigned long vertex);
-
     [[nodiscard]] std::vector<unsigned long> bfs_traversal(unsigned long start);
-
-    [[nodiscard]] unsigned long pop_min_degree_vertex();
-
-    void eliminate_vertex(unsigned long v);
-
-    void populate_buckets();
-
-    bool edge_exists(unsigned long u, unsigned long v) const;
-
-    std::vector<unsigned long> get_neighbors(unsigned long vertex);
-
-    unsigned long get_edge_weight(unsigned long u, unsigned long v);
-
-    void add_edge_cache(unsigned long u, unsigned long v);
-
-    void remove_edge_cache(unsigned long u, unsigned long v);
-
-    void change_edge_weight_cache(unsigned long u, unsigned long v);
 
     // returns adj, bags, root of tree decomposition
     std::tuple<TreeDecompAdj, TreeDecompBags, unsigned long> get_td();
 
+    [[nodiscard]] std::tuple<Pos, Dis> get_h2h();
+    [[nodiscard]] std::vector<unsigned long> get_top_down_ordering() const;
+    [[nodiscard]] std::vector<unsigned long> get_bag_path(unsigned long v) const;
+    [[nodiscard]] unsigned long h2h_query(unsigned long u, unsigned long v);
+
+    void populate_buckets();
+
+    [[nodiscard]] bool edge_exists(unsigned long u, unsigned long v) const;
+    [[nodiscard]] unsigned long pop_min_degree_vertex();
+    [[nodiscard]] std::vector<unsigned long> get_star(unsigned long vertex) const;
+    void eliminate_vertex(unsigned long v);
+    static unsigned long treewidth(TreeDecompBags& bags);
+
+    [[nodiscard]] std::vector<unsigned long> get_neighbors(unsigned long vertex) const;
+    [[nodiscard]] unsigned long get_edge_weight(unsigned long u, unsigned long v) const;
+
+    void add_edge_cache(unsigned long u, unsigned long v);
+    void remove_edge_cache(unsigned long u, unsigned long v);
+
+    [[nodiscard]] std::vector<unsigned long> get_random_ordering() const;
+
 private:
-    AdjMap adj;
+    AdjMap* adj{};
     unsigned long num_vertices = 0;
 
     TreeDecompAdj td_adj;
     TreeDecompBags td_bags;
     TreeDecompWeights td_weights;
 
+    std::tuple<Pos, Dis> h2h;
+
+    std::unordered_map<unsigned long, std::vector<unsigned long>> anc_map;
+
+    unsigned long td_root = std::numeric_limits<unsigned long>::max();
+
     std::unordered_set<uint64_t> edge_set;
 
     std::vector<std::list<unsigned long>> buckets;
     std::vector<unsigned long> degrees;
     std::vector<std::list<unsigned long>::iterator> bucket_position;
+
+    static unsigned long index_of(const std::vector<unsigned long>&, unsigned long v);
+
+    unsigned long lca(unsigned long u, unsigned long v);
 };
 
 #endif //GROUP7_GRAPH_H
