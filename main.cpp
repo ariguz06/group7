@@ -38,15 +38,13 @@ int main() {
     auto td_metrics = graph.get_td();
     t.stop();
 
-    auto &td_adj = std::get<0>(td_metrics);
     auto &td_bags = std::get<1>(td_metrics);
-    auto root = std::get<2>(td_metrics);
 
     std::cout << "Tree decomposition time elapsed: " << t.elapsed() << std::endl;
     std::cout << "Treewidth: " << Graph::treewidth(td_bags) << std::endl;
 
     const auto& h2h = graph.get_h2h();
-    const auto dis = graph.h2h_query(11, 2);
+    const auto dis = graph.h2h_query(1169, 0);
 
     std::cout << dis << std::endl;
 
