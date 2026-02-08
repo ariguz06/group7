@@ -42,7 +42,7 @@ inline unsigned long dijkstra_oracle(
 }
 
 inline bool verify_h2h(
-    Graph& graph,                // ❗ NOT const
+    Graph& graph,                // 
     unsigned long n,
     unsigned int samples = 100
 ) {
