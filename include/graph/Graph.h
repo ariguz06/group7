@@ -7,6 +7,8 @@
 #include <list>
 #include <unordered_map>
 #include <unordered_set>
+#include <memory>
+#include <vector>
 
 #include "Edge.h"
 
@@ -71,7 +73,9 @@ private:
     std::unordered_map<unsigned long, std::vector<unsigned long>> anc_map;
     std::unordered_map<unsigned long, unsigned long> parent_map;
 
-    unsigned long td_root = std::numeric_limits<unsigned long>::max();
+    unsigned long td_root = 1e12;
+
+    // unsigned long td_root = std::numeric_limits<unsigned long>::max();
 
     std::unordered_set<uint64_t> edge_set;
 

@@ -3,7 +3,7 @@
 
 #include "graph/Graph.h"
 #include "util/Timer.h"
-
+// TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
 int main() {
 
     auto t = Timer();
@@ -38,12 +38,29 @@ int main() {
     auto td_metrics = graph.get_td();
     t.stop();
 
-    auto &td_adj = std::get<0>(td_metrics);
     auto &td_bags = std::get<1>(td_metrics);
-    auto root = std::get<2>(td_metrics);
 
     std::cout << "Tree decomposition time elapsed: " << t.elapsed() << std::endl;
     std::cout << "Treewidth: " << Graph::treewidth(td_bags) << std::endl;
+
+    t.reset();
+    t.start();
+    graph.get_h2h();
+    t.stop();
+
+    std::cout << "H2H construction time elapsed: " << t.elapsed() << std::endl;
+
+    const auto dis = graph.h2h_query(10000, 0);
+
+    std::cout << dis << std::endl;
+
+/* Benchmarking plan to be run on Unity Cluster w/ job script
+
+TD benchmark - compute TDs + width of every graph
+H2H construction time + shortest distance query times (random sample)
+Dijkstra's shortest distance query times (random sample)
+
+*/
 
     return 0;
 }
