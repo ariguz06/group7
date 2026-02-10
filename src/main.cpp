@@ -1,8 +1,8 @@
 #include <filesystem>
 #include <iostream>
 
-#include "include/graph/Graph.h"
-#include "include/util/Timer.h"
+#include "../include/graph/Graph.h"
+#include "../include/util/Timer.h"
 // TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
 int main() {
 
