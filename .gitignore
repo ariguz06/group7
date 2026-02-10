@@ -5,6 +5,8 @@
 
 ./mtx/road-road-usa.mtx
 
+./app
+
 # Compiled Object files
 *.slo
 *.lo

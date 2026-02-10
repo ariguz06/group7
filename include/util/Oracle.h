@@ -1,10 +1,15 @@
 #pragma once
-#include "../graph/Graph.h"
+#include "graph/Graph.h"
+#include "util/Timer.h"
+
 #include <queue>
 #include <limits>
 #include <vector>
 #include <random>
 #include <iostream>
+#include <chrono>
+#include <sstream>
+#include <ctime>
 
 namespace GraphUtil {
 
@@ -42,55 +47,56 @@ inline unsigned long dijkstra_oracle(
 }
 
 inline bool verify_h2h(
-    Graph& graph,                // 
+    Graph& graph,                // assumes h2h index is already computed 
     unsigned long n,
-    unsigned int samples = 100
+    unsigned int samples = 10,
+    std::ofstream& file,
+    Timer& timer
 ) {
-    // Build H2H once
-    graph.get_h2h();
 
     std::mt19937 rng(42);
     std::uniform_int_distribution<unsigned long> dist(0, n - 1);
 
+    file << "Format <h2h query time>,<dijkstra query time><newline>\n";
+
     for (unsigned int i = 0; i < samples; i++) {
         unsigned long u = dist(rng);
         unsigned long v = dist(rng);
-        if (u == v) continue;
+        
+	if (u == v) {
+		samples++;
+		continue;
+	} 
 
-        unsigned long h2h_d = graph.h2h_query(u, v);
+
+	timer.reset();
+	timer.start();
+	unsigned long h2h_d = graph.h2h_query(u, v);
+	timer.stop();
+
+	file << timer.elapsed() << ",";
+
+	timer.reset();
+	timer.start();
         unsigned long oracle_d = dijkstra_oracle(graph, u, v, n);
+	timer.stop();
+
+	file << timer.elapsed() << "\n";
+
 
         if (h2h_d != oracle_d) {
-            std::cout << " MISMATCH\n";
-            std::cout << "u=" << u << " v=" << v << "\n";
-            std::cout << "H2H=" << h2h_d
-                      << " Oracle=" << oracle_d << "\n";
+            // file << " MISMATCH\n";
+            // file << "u=" << u << " v=" << v << "\n";
+            // file << "H2H=" << h2h_d
+            // file << " Oracle=" << oracle_d << "\n";
             return false;
         }
     }
 
-    std::cout << " H2H verified on " << samples << " random pairs\n";
+    file << " H2H verified on " << file << " random pairs\n";
     return true;
 }
 
 } // namespace GraphUtil
 
-int main() {
-    Graph graph = Graph::from_mtx(
-        "road-minnesota.mtx",
-        true,   // weighted
-        false   // undirected
-    );
 
-    auto [td_adj, td_bags, root] = graph.get_td();
-
-    std::cout << "Treewidth: "
-              << Graph::treewidth(td_bags)
-              << std::endl;
-
-    constexpr unsigned long N = 2642; // road-minnesota size
-
-    GraphUtil::verify_h2h(graph, N, 50);
-
-    return 0;
-}
