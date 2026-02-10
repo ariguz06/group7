@@ -22,6 +22,7 @@
 
 Graph::Graph(AdjMap adj) {
     this->adj = std::make_unique<AdjMap>(AdjMap(std::move(adj)));
+    this->num_vertices = this->adj->size();
 
     buckets.resize(100000);
     degrees.resize(this->adj->size());
@@ -257,7 +258,7 @@ std::vector<unsigned long> Graph::get_random_ordering() const {
 
 std::tuple<Graph::TreeDecompAdj, Graph::TreeDecompBags, unsigned long> Graph::get_td() {
     const auto h = std::make_unique<Graph>(*adj);
-    h->num_vertices = 2642;
+    h->num_vertices = adj->size();
     h->populate_buckets();
 
     std::vector<unsigned long> ordering(adj->size());
@@ -400,6 +401,13 @@ unsigned long Graph::h2h_query(const unsigned long u, const unsigned long v) {
     }
 
     return d;
+}
+
+unsigned long Graph::get_h2h_size() {
+	const auto& pos = std::get<0>(*h2h);
+	const auto& dis = std::get<1>(*h2h);
+
+	return sizeof(pos) + sizeof(dis);
 }
 
 unsigned long Graph::index_of(const std::vector<unsigned long>& b, const unsigned long v) {

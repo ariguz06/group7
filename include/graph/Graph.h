@@ -43,6 +43,7 @@ public:
     [[nodiscard]] std::vector<unsigned long> get_top_down_ordering() const;
     [[nodiscard]] std::vector<unsigned long> get_bag_path(unsigned long v) const;
     [[nodiscard]] unsigned long h2h_query(unsigned long u, unsigned long v);
+    unsigned long get_h2h_size();
 
     void populate_buckets();
 
@@ -59,11 +60,11 @@ public:
     void remove_edge_cache(unsigned long u, unsigned long v);
 
     [[nodiscard]] std::vector<unsigned long> get_random_ordering() const;
+    unsigned long num_vertices = 0;
 
 private:
     std::unique_ptr<AdjMap> adj{};
-    unsigned long num_vertices = 0;
-
+    
     TreeDecompAdj td_adj;
     TreeDecompBags td_bags;
     TreeDecompWeights td_weights;
