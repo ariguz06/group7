@@ -37,7 +37,7 @@ public:
     // returns adj, bags, root of tree decomposition
     std::tuple<TreeDecompAdj, TreeDecompBags, unsigned long> get_td();
 
-    [[nodiscard]] std::tuple<Pos, Dis> get_h2h();
+    std::tuple<Pos, Dis> get_h2h();
     [[nodiscard]] std::vector<unsigned long> get_top_down_ordering() const;
     [[nodiscard]] std::vector<unsigned long> get_bag_path(unsigned long v) const;
     [[nodiscard]] unsigned long h2h_query(unsigned long u, unsigned long v);
@@ -59,16 +59,17 @@ public:
     [[nodiscard]] std::vector<unsigned long> get_random_ordering() const;
 
 private:
-    AdjMap* adj{};
+    std::unique_ptr<AdjMap> adj{};
     unsigned long num_vertices = 0;
 
     TreeDecompAdj td_adj;
     TreeDecompBags td_bags;
     TreeDecompWeights td_weights;
 
-    std::tuple<Pos, Dis> h2h;
+    std::unique_ptr<std::tuple<Pos, Dis>> h2h;
 
     std::unordered_map<unsigned long, std::vector<unsigned long>> anc_map;
+    std::unordered_map<unsigned long, unsigned long> parent_map;
 
     unsigned long td_root = std::numeric_limits<unsigned long>::max();
 
