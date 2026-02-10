@@ -18,11 +18,14 @@
 #include "../../include/graph/Graph.h"
 
 #include <iostream>
+#include <random>
 
-Graph::Graph(AdjMap adj) : adj(std::move(adj)) {
-    buckets.resize(1000);
-    degrees.resize(this->adj.size());
-    bucket_position.resize(this->adj.size());
+Graph::Graph(AdjMap adj) {
+    this->adj = std::make_unique<AdjMap>(AdjMap(std::move(adj)));
+
+    buckets.resize(100000);
+    degrees.resize(this->adj->size());
+    bucket_position.resize(this->adj->size());
 }
 
 // This method generated with Claude Sonnet 4.5
@@ -76,7 +79,7 @@ Graph Graph::from_mtx(const std::string &path, bool weighted, bool directed) {
 
 std::vector<unsigned long> Graph::bfs_traversal(const unsigned long start) {
     std::vector<unsigned long> order;
-    std::vector visited(adj.size(), false);
+    std::vector visited(adj->size(), false);
 
     std::queue<unsigned long> q;
     q.push(start);
@@ -86,7 +89,7 @@ std::vector<unsigned long> Graph::bfs_traversal(const unsigned long start) {
         unsigned long const u = q.front();
         q.pop();
         order.push_back(u);
-        for (const auto&[to, w] : adj.at(u)) {
+        for (const auto&[to, w] : adj->at(u)) {
             if (!visited[to]) {
                 visited[to] = true;
                 q.push(to);
@@ -99,20 +102,20 @@ std::vector<unsigned long> Graph::bfs_traversal(const unsigned long start) {
     return order;
 }
 
-std::vector<unsigned long> Graph::get_neighbors(const unsigned long vertex) {
+std::vector<unsigned long> Graph::get_neighbors(const unsigned long vertex) const {
     std::vector<unsigned long> neighbors;
-    for (const auto &[v, w] : adj.at(vertex)) {
+    for (const auto &[v, w] : adj->at(vertex)) {
         neighbors.push_back(v);
     }
 
     return neighbors;
 }
 
-std::vector<unsigned long> Graph::get_star(const unsigned long vertex) {
+std::vector<unsigned long> Graph::get_star(const unsigned long vertex) const {
     auto star = std::vector<unsigned long>();
     star.push_back(vertex);
 
-    for (const auto &[to, w]: adj.at(vertex)) {
+    for (const auto &[to, w]: adj->at(vertex)) {
         star.push_back(to);
     }
 
@@ -120,7 +123,7 @@ std::vector<unsigned long> Graph::get_star(const unsigned long vertex) {
 }
 
 void Graph::populate_buckets() {
-    for (const auto &[u, edges] : adj) {
+    for (const auto &[u, edges] : *adj) {
         const unsigned long deg = edges.size();
 
         buckets[deg].push_back(u);
@@ -144,39 +147,49 @@ void Graph::eliminate_vertex(const unsigned long v) {
 
             const unsigned long uvw_weight = get_edge_weight(u, v) + get_edge_weight(v, w);
 
+            auto& adj_w = (*adj)[w];
+            auto& adj_u = (*adj)[u];
+
             if (!edge_exists(u, w)) {
-                adj[u].push_back({w, uvw_weight});
-                adj[w].push_back({u, uvw_weight});
+                adj_u.push_back({w, uvw_weight});
+                adj_w.push_back({u, uvw_weight});
 
                 add_edge_cache(u, w);
                 add_edge_cache(w, u);
 
             } else if (uvw_weight < get_edge_weight(u, w)) {
-                // FIXME
-                adj[u].erase(std::ranges::find_if(adj[u], [&](const Edge& e) {return e.to == w;}));
-                adj[w].erase(std::ranges::find_if(adj[w], [&](const Edge& e) {return e.to == u;}));
+                // FIXME ?
+                adj_u.erase(std::ranges::find_if((*adj)[u], [&](const Edge& e) {return e.to == w;}));
+                adj_w.erase(std::ranges::find_if(adj_w, [&](const Edge& e) {return e.to == u;}));
 
-                adj[u].push_back({w, uvw_weight});
-                adj[w].push_back({u, uvw_weight});
+                adj_u.push_back({w, uvw_weight});
+                adj_w.push_back({u, uvw_weight});
             }
         }
     }
+
+    // add edge weights to td_weights here?
+    for (const auto& neighbor: neighbors) {
+        const auto w = get_edge_weight(neighbor, v);
+        td_weights[v].push_back(w);
+    }
+
 
     // removes any outward edges from neighbors to vertex
     for (const auto& neighbor : neighbors) {
         remove_edge_cache(neighbor, v);
         remove_edge_cache(v, neighbor);
-        adj.at(neighbor).erase(std::ranges::find_if(adj.at(neighbor), [&](const Edge& e) {return e.to == v;}));
+        adj->at(neighbor).erase(std::ranges::find_if(adj->at(neighbor), [&](const Edge& e) {return e.to == v;}));
     }
 
     // erases vertex
-    adj.erase(v);
+    adj->erase(v);
     num_vertices -= 1;
 
     // updates buckets after edge fill-in
     for (unsigned long neighbor : neighbors) {
 
-        auto& to_erase = adj.at(neighbor);
+        auto& to_erase = adj->at(neighbor);
 
         const unsigned long d1 = degrees[neighbor];
         const unsigned long d2 = to_erase.size();
@@ -207,14 +220,14 @@ bool Graph::edge_exists(const unsigned long u, const unsigned long v) const {
     return edge_set.contains(edge);
 }
 
-unsigned long Graph::get_edge_weight(const unsigned long u, const unsigned long v) {
+unsigned long Graph::get_edge_weight(const unsigned long u, const unsigned long v) const {
     if (u == v) return 0;
 
-    for (const auto& [to, w] : adj[u]) {
+    for (const auto& [to, w] : (*adj)[u]) {
         if (to == v) return w;
     }
 
-   return -1;
+   return 0;
 }
 
 void Graph::add_edge_cache(const unsigned long u, const unsigned long v) {
@@ -230,43 +243,52 @@ void Graph::remove_edge_cache(const unsigned long u, const unsigned long v) {
     edge_set.erase(edge_cache);
 }
 
-std::tuple<Graph::TreeDecompAdj, Graph::TreeDecompBags, unsigned long> Graph::get_td() {
-    auto h = Graph(adj);
-    h.num_vertices = 2642;
-    h.populate_buckets();
+std::vector<unsigned long> Graph::get_random_ordering() const {
+    std::vector<unsigned long> ordering(adj->size());
+    for (unsigned long u = 0; u < adj->size(); u++) {
+        ordering[u] = u;
+    }
 
-    std::vector<unsigned long> ordering(adj.size());
+    std::mt19937_64 rng(std::random_device{}());
+    std::ranges::shuffle(ordering, rng);
+
+    return ordering;
+}
+
+std::tuple<Graph::TreeDecompAdj, Graph::TreeDecompBags, unsigned long> Graph::get_td() {
+    const auto h = std::make_unique<Graph>(*adj);
+    h->num_vertices = 2642;
+    h->populate_buckets();
+
+    std::vector<unsigned long> ordering(adj->size());
 
     td_bags.clear();
     td_adj.clear();
 
-    for (unsigned long i = 0; i < adj.size(); i++) {
-        unsigned long v = h.pop_min_degree_vertex();
+    for (int i = 0; i < adj->size(); i++) {
+        unsigned long v = h->pop_min_degree_vertex(); // can be substituted with other heuristic
+        // unsigned long v = rand_ordering[i];
 
-        td_bags[v] = h.get_star(v);
-        h.eliminate_vertex(v);
+        td_bags[v] = h->get_star(v);
+        h->eliminate_vertex(v);
 
         ordering[v] = i;
 
         if (i % static_cast<int>(num_vertices / 10) == 0) {
-            std::cout << "Eliminated vertex " << i << " bag size " << td_bags[v].size() << std::endl;
+            std::cout << "Eliminated vertex " << i << " " << 10 * i / static_cast<int>(num_vertices / 10) << "%" << std::endl;
         }
     }
 
-    unsigned long root = 1e9;
+    for (unsigned long v : *adj | std::views::keys) {
 
-    std::cout << "Sorting vertices" << std::endl;
-
-    for (unsigned long v = 0; v < ordering.size(); ++v) {
         const auto& bag = td_bags.at(v);
-
-        if (bag.size() == 1) {
-            root = v;
-            continue;
-        }
 
         unsigned long min_u = v;
         unsigned long best = 1e9;
+
+        if (bag.size() == 1) {
+            td_root = v;
+        }
 
         for (const unsigned long u : bag) {
             if (u != v && ordering[u] < best) {
@@ -275,22 +297,167 @@ std::tuple<Graph::TreeDecompAdj, Graph::TreeDecompBags, unsigned long> Graph::ge
             }
         }
 
+        if (best == std::numeric_limits<unsigned long>::max()) {
+            continue;
+        }
+
         td_adj[v].push_back(min_u);
         td_adj[min_u].push_back(v);
+
+        parent_map[v] = min_u;
     }
+
+    this->td_weights = h->td_weights;
 
     for (auto &bag: td_bags | std::views::values) {
         std::ranges::sort(bag, [&](const unsigned long a, const unsigned long b) {return ordering[a] > ordering[b];});
     }
 
-    for (auto &[v, neighbors] : td_bags) {
-        for (const auto& neighbor : neighbors) {
-            td_weights[v].push_back(get_edge_weight(v, neighbor));
+    for (auto &weights : td_weights | std::views::values) {
+        std::ranges::sort(weights, [&](const unsigned long a, const unsigned long b) {return ordering[a] > ordering[b];});
+        weights.push_back(0);
+    }
+
+    return {td_adj, td_bags, td_root};
+}
+
+std::vector<unsigned long> Graph::get_top_down_ordering() const {
+    std::vector<unsigned long> ordering;
+
+    std::queue<unsigned long> q;
+    std::unordered_set<unsigned long> visited;
+
+    q.push(td_root);
+    visited.insert(td_root);
+
+    while (!q.empty()) {
+        unsigned long u = q.front();
+        q.pop();
+        ordering.push_back(u);
+
+        for (const unsigned long neighbor : td_adj.at(u)) {
+            if (!visited.contains(neighbor)) {
+                q.push(neighbor);
+                visited.insert(neighbor);
+            }
         }
     }
 
-    return {td_adj, td_bags, root};
+    return ordering;
 }
+
+std::vector<unsigned long> Graph::get_bag_path(const unsigned long v) const {
+    unsigned long c = v;
+    std::vector<unsigned long> path;
+
+    if (!parent_map.contains(c)) {
+        path.push_back(td_root);
+        return path;
+    }
+
+    while (parent_map.contains(c)) {
+        path.push_back(c);
+        c = parent_map.at(c);
+    }
+    path.push_back(td_root);
+
+    std::ranges::reverse(path);
+
+    return path;
+}
+
+unsigned long Graph::lca(const unsigned long u, const unsigned long v) {
+    const auto& u_anc = anc_map[u];
+    const auto& v_anc = anc_map[v];
+
+    const auto min_len = std::min(u_anc.size(), v_anc.size());
+    unsigned long lca = -1;
+
+    for (int i = 0; i < min_len; i++) {
+        if (u_anc[i] == v_anc[i]) {
+            lca = u_anc[i];
+        }
+        else {
+            break;
+        }
+    }
+
+    if (lca == -1) {
+        throw std::invalid_argument("Graph::lca() failed");
+    }
+
+    return lca;
+}
+
+unsigned long Graph::h2h_query(const unsigned long u, const unsigned long v) {
+
+    const auto x = lca(u, v);
+
+    unsigned long d = 1e9;
+    const auto& dis_map = std::get<1>(*h2h);
+    for (const auto& pos_map = std::get<0>(*h2h); const unsigned long i : pos_map.at(x)) {
+        d = std::min(d, dis_map.at(u)[i] + dis_map.at(v)[i]);
+    }
+
+    return d;
+}
+
+unsigned long Graph::index_of(const std::vector<unsigned long>& b, const unsigned long v) {
+    for (unsigned long i = 0; i < b.size(); ++i) {
+        if (b[i] == v) {return i;}
+    }
+
+    throw std::out_of_range("Vertex not found");
+}
+
+std::tuple<Graph::Pos, Graph::Dis> Graph::get_h2h() {
+    Pos pos;
+    Dis dis;
+
+    const std::vector<unsigned long> ordering = get_top_down_ordering();
+
+    for (const unsigned long bag : ordering) {
+        anc_map[bag] = get_bag_path(bag);
+    }
+
+    for (const unsigned long v_bag : ordering) {
+        auto& anc = anc_map.at(v_bag);
+
+        for (const unsigned long bag_vertex : td_bags.at(v_bag)) {
+            auto bag_pos_i = index_of(anc, bag_vertex);
+            pos[v_bag].push_back(bag_pos_i);
+        }
+
+        for (unsigned long i = 0; i < anc.size()-1; i++) {
+
+            dis[v_bag].push_back(1e9);
+            auto& bag = td_bags.at(v_bag);
+
+            for (unsigned long j = 0; j < bag.size()-1; j++) {
+                unsigned long d;
+                unsigned long xj_vertex = bag.at(j);
+
+                if (pos[v_bag][j] > i) {
+                    d = dis[xj_vertex][i];
+                } else {
+                    unsigned long v_bag_anc_i = anc_map.at(v_bag)[i];
+                    const unsigned long dis_index = pos[v_bag][j];
+
+                    d = dis[v_bag_anc_i][dis_index];
+                }
+
+                d = std::min(dis[v_bag][i], td_weights.at(v_bag)[j] + d);
+                dis[v_bag][i] = d;
+            }
+        }
+
+        dis[v_bag].push_back(0);
+    }
+
+    h2h = std::make_unique<std::tuple<Pos, Dis>>(std::make_tuple(pos, dis));
+    return *h2h;
+}
+
 
 unsigned long Graph::treewidth(TreeDecompBags& bags) {
     unsigned long tw = 0;
