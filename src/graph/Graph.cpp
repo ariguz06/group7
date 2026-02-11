@@ -22,6 +22,7 @@
 
 Graph::Graph(AdjMap adj) {
     this->adj = std::make_unique<AdjMap>(AdjMap(std::move(adj)));
+
     this->num_vertices = this->adj->size();
 
     buckets.resize(100000);
@@ -258,13 +259,15 @@ std::vector<unsigned long> Graph::get_random_ordering() const {
 
 std::tuple<Graph::TreeDecompAdj, Graph::TreeDecompBags, unsigned long> Graph::get_td() {
     const auto h = std::make_unique<Graph>(*adj);
-    h->num_vertices = adj->size();
+    h->num_vertices = adj->size() / 2;
     h->populate_buckets();
 
     std::vector<unsigned long> ordering(adj->size());
 
     td_bags.clear();
     td_adj.clear();
+
+    std::cout << num_vertices << std::endl;
 
     for (int i = 0; i < adj->size(); i++) {
         unsigned long v = h->pop_min_degree_vertex(); // can be substituted with other heuristic
@@ -396,7 +399,9 @@ unsigned long Graph::h2h_query(const unsigned long u, const unsigned long v) {
 
     unsigned long d = 1e9;
     const auto& dis_map = std::get<1>(*h2h);
-    for (const auto& pos_map = std::get<0>(*h2h); const unsigned long i : pos_map.at(x)) {
+    const auto& pos_map = std::get<0>(*h2h);
+
+    for ( const unsigned long i : pos_map.at(x)) {
         d = std::min(d, dis_map.at(u)[i] + dis_map.at(v)[i]);
     }
 
@@ -429,6 +434,9 @@ std::tuple<Graph::Pos, Graph::Dis> Graph::get_h2h() {
     }
 
     for (const unsigned long v_bag : ordering) {
+
+        std::cout << v_bag << std::endl;
+
         auto& anc = anc_map.at(v_bag);
 
         for (const unsigned long bag_vertex : td_bags.at(v_bag)) {

@@ -5,9 +5,10 @@
 #include <fstream>
 #include <ctime>
 
+#include "../include/util/Oracle.h"
 #include "graph/Graph.h"
 #include "util/Timer.h"
-// #include "util/Oracle.h"
+#include "util/Oracle.h"
 
 #define OUTPUT_DIR "/out"
 
@@ -58,17 +59,21 @@ int main() {
 		auto& td_bags = std::get<1>(td_metrics);
 
 		file << "TD time elapsed: " << std::to_string(t.elapsed()) << "\n";
-		file << "Treewidth: " << std::to_string(t.elapsed()) << "\n\n";
+		file << "Treewidth: " << Graph::treewidth(td_bags) << "\n\n";
 		t.reset();
+
+    	std::cout << "Constructing H2H index" << std::endl;
 
 		t.start();
 		graph.get_h2h();
 		t.stop();
 
-		file << "H2H construction time elapsed : " << std::to_string(t.elapsed()) << "\n";
-		file << "H2H size: " << std::to_string(graph.get_h2h_size()) << "\n";
+    	std::cout << "Done constructing H2H" << std::endl;
 
-		Oracle::verify_h2h(graph, graph.num_vertices, 10, file, t);
+		// file << "H2H construction time elapsed : " << std::to_string(t.elapsed()) << "\n";
+		// file << "H2H size: " << std::to_string(graph.get_h2h_size()) << "\n";
+
+		// GraphUtil::verify_h2h(graph, graph.num_vertices, file, t, 10);
 
 		file << "End" << "\n";
 		file.close();
@@ -81,25 +86,5 @@ H2H construction time + shortest distance query times (random sample)
 Dijkstra's shortest distance query times (random sample)
 
 */
-
-    t.reset();
-    t.start();
-    graph.get_h2h();
-    t.stop();
-
-    std::cout << "H2H construction time elapsed: " << t.elapsed() << std::endl;
-
-    const auto dis = graph.h2h_query(1000000, 14);
-
-    std::cout << dis << std::endl;
-
-/* Benchmarking plan to be run on Unity Cluster w/ job script
-
-TD benchmark - compute TDs + width of every graph
-H2H construction time + shortest distance query times (random sample)
-Dijkstra's shortest distance query times (random sample)
-
-*/
-
     return 0;
 }

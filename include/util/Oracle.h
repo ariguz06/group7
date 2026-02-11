@@ -16,10 +16,10 @@ namespace GraphUtil {
 inline unsigned long dijkstra_oracle(
     const Graph& graph,
     unsigned long source,
-    unsigned long target,
-    unsigned long n
+    const unsigned long target,
+    const unsigned long n
 ) {
-    const unsigned long INF = std::numeric_limits<unsigned long>::max();
+    constexpr unsigned long INF = std::numeric_limits<unsigned long>::max();
 
     std::vector<unsigned long> dist(n, INF);
     dist[source] = 0;
@@ -48,16 +48,14 @@ inline unsigned long dijkstra_oracle(
 
 inline bool verify_h2h(
     Graph& graph,                // assumes h2h index is already computed 
-    unsigned long n,
-    unsigned int samples = 10,
+    const unsigned long n,
     std::ofstream& file,
-    Timer& timer
+    Timer& timer,
+    unsigned int samples = 10
 ) {
 
     std::mt19937 rng(42);
     std::uniform_int_distribution<unsigned long> dist(0, n - 1);
-
-    file << "Format <h2h query time>,<dijkstra query time><newline>\n";
 
     for (unsigned int i = 0; i < samples; i++) {
         unsigned long u = dist(rng);
@@ -93,7 +91,7 @@ inline bool verify_h2h(
         }
     }
 
-    file << " H2H verified on " << file << " random pairs\n";
+    file << " H2H verified on " << samples << " random pairs\n";
     return true;
 }
 
