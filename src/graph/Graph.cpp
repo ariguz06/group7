@@ -21,11 +21,13 @@
 #include <iostream>
 #include <random>
 
-Graph::Graph(AdjMap adj) : adj(std::move(adj)) {
-    buckets.resize(10000);
+Graph::Graph(AdjMap adj, bool populate_buckets) : adj(std::move(adj)) {
+    if(populate_buckets) {
+        buckets.resize(10000);
 
-    degrees.resize(this->adj.size());
-    bucket_position.resize(this->adj.size());
+        degrees.resize(this->adj.size());
+        bucket_position.resize(this->adj.size());
+    }
 }
 
 // This method generated with Claude Sonnet 4.5
@@ -71,7 +73,7 @@ Graph Graph::from_mtx(const std::string &path, bool weighted, bool directed) {
         }
     }
 
-    auto g = Graph(adj);
+    auto g = Graph(adj, false);
 
     return g;
 }
@@ -256,7 +258,7 @@ std::vector<unsigned long> Graph::get_random_ordering() const {
 }
 
 std::tuple<Graph::TreeDecompAdj, Graph::TreeDecompBags, unsigned long> Graph::get_td() {
-    Graph h = Graph(adj);
+    Graph h = Graph(adj, true);
     h.num_vertices = adj.size();
     h.populate_buckets();
 
