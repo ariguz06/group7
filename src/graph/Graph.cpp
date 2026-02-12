@@ -13,6 +13,7 @@
 #include <vector>
 #include <cassert>
 #include <utility>
+#include <algorithm>
 
 #include "graph/Graph.h"
 #include "util/Oracle.h"
