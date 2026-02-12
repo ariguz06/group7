@@ -3,10 +3,10 @@
 *.d
 .idea
 .vscode
+./app
 app
 out
 ./out
-./app
 ./mtx/road-road-usa.mtx
 
 cmake-build-debug
