@@ -65,7 +65,7 @@ public:
     unsigned long num_vertices = 0;
 
 private:
-    std::unique_ptr<AdjMap> adj{};
+    AdjMap adj{};
     
     TreeDecompAdj td_adj;
     TreeDecompBags td_bags;
