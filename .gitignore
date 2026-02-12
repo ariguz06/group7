@@ -2,11 +2,14 @@
 # Prerequisites
 *.d
 .idea
+.vscode
 app
 out
 ./out
 ./app
 ./mtx/road-road-usa.mtx
+
+cmake-build-debug
 
 # Compiled Object files
 *.slo
