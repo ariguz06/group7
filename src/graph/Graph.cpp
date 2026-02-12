@@ -20,10 +20,9 @@
 #include <iostream>
 #include <random>
 
-Graph::Graph(AdjMap adj) {
-    this->adj = AdjMap(std::move(adj));
+Graph::Graph(AdjMap adj) : adj(std::move(adj)) {
+    buckets.resize(10000);
 
-    buckets.resize(100000);
     degrees.resize(this->adj.size());
     bucket_position.resize(this->adj.size());
 }
@@ -72,7 +71,6 @@ Graph Graph::from_mtx(const std::string &path, bool weighted, bool directed) {
     }
 
     auto g = Graph(adj);
-    g.populate_buckets();
 
     return g;
 }
@@ -257,8 +255,8 @@ std::vector<unsigned long> Graph::get_random_ordering() const {
 }
 
 std::tuple<Graph::TreeDecompAdj, Graph::TreeDecompBags, unsigned long> Graph::get_td() {
-    auto h = Graph(adj);
-    h.num_vertices = 2642;
+    Graph h = Graph(adj);
+    h.num_vertices = adj.size();
     h.populate_buckets();
 
     std::vector<unsigned long> ordering(adj.size());
