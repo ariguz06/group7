@@ -2,7 +2,10 @@
 # Prerequisites
 *.d
 .idea
-
+app
+out
+./out
+./app
 ./mtx/road-road-usa.mtx
 
 # Compiled Object files

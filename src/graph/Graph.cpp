@@ -11,8 +11,11 @@
 #include <queue>
 #include <unordered_map>
 #include <vector>
+#include <cassert>
+#include <utility>
 
-#include "../../include/graph/Graph.h"
+#include "graph/Graph.h"
+#include "util/Oracle.h"
 
 #include <iostream>
 #include <random>
@@ -144,8 +147,8 @@ void Graph::eliminate_vertex(const unsigned long v) {
 
             const unsigned long uvw_weight = get_edge_weight(u, v) + get_edge_weight(v, w);
 
-            auto& adj_w = (*adj)[w];
-            auto& adj_u = (*adj)[u];
+            auto& adj_w = adj->at(w);
+            auto& adj_u = adj->at(u);
 
             if (!edge_exists(u, w)) {
                 adj_u.push_back({w, uvw_weight});
@@ -165,11 +168,12 @@ void Graph::eliminate_vertex(const unsigned long v) {
         }
     }
 
-    // add edge weights to td_weights here?
+    // add edge weights to td_weights
     for (const auto& neighbor: neighbors) {
         const auto w = get_edge_weight(neighbor, v);
-        td_weights[v].push_back(w);
+        td_bag_edges[v].push_back({neighbor, w});
     }
+    td_bag_edges[v].push_back({v, 0});
 
 
     // removes any outward edges from neighbors to vertex
@@ -220,11 +224,11 @@ bool Graph::edge_exists(const unsigned long u, const unsigned long v) const {
 unsigned long Graph::get_edge_weight(const unsigned long u, const unsigned long v) const {
     if (u == v) return 0;
 
-    for (const auto& [to, w] : (*adj)[u]) {
-        if (to == v) return w;
+    for (const Edge& e : adj->at(u)) {
+        if (e.to == v) return e.w;
     }
 
-   return 0;
+    return ULONG_MAX;
 }
 
 void Graph::add_edge_cache(const unsigned long u, const unsigned long v) {
@@ -282,11 +286,7 @@ std::tuple<Graph::TreeDecompAdj, Graph::TreeDecompBags, unsigned long> Graph::ge
         const auto& bag = td_bags.at(v);
 
         unsigned long min_u = v;
-        unsigned long best = std::numeric_limits<unsigned long>::max();
-
-        if (bag.size() == 1) {
-            td_root = v;
-        }
+        unsigned long best = ULONG_MAX;
 
         for (const unsigned long u : bag) {
             if (u != v && ordering[u] < best) {
@@ -295,7 +295,9 @@ std::tuple<Graph::TreeDecompAdj, Graph::TreeDecompBags, unsigned long> Graph::ge
             }
         }
 
-        if (best == std::numeric_limits<unsigned long>::max()) {
+        if (best == ULONG_MAX) {
+            td_root = v;
+            parent_map[v] = v;
             continue;
         }
 
@@ -305,15 +307,27 @@ std::tuple<Graph::TreeDecompAdj, Graph::TreeDecompBags, unsigned long> Graph::ge
         parent_map[v] = min_u;
     }
 
-    this->td_weights = h->td_weights;
+    for (auto& [v, bag] : td_bags) {
 
-    for (auto &bag: td_bags | std::views::values) {
         std::ranges::sort(bag, [&](const unsigned long a, const unsigned long b) {return ordering[a] > ordering[b];});
-    }
 
-    for (auto &weights : td_weights | std::views::values) {
-        std::ranges::sort(weights, [&](const unsigned long a, const unsigned long b) {return ordering[a] > ordering[b];});
-        weights.push_back(0);
+        if (v == td_root) {
+            td_weights[v].push_back(0);
+            continue;
+        }
+
+        const auto& edges = h->td_bag_edges.at(v);
+
+        for (const unsigned long u : bag) {
+            
+            for (const auto&[to, w] : edges) {
+                if (to == u && u != v) {
+                    td_weights[v].push_back(w);
+                }
+            }
+        }
+
+        td_weights[v].push_back(0);
     }
 
     return {td_adj, td_bags, td_root};
@@ -348,19 +362,22 @@ std::vector<unsigned long> Graph::get_bag_path(const unsigned long v) const {
     unsigned long c = v;
     std::vector<unsigned long> path;
 
-    if (!parent_map.contains(c)) {
-        path.push_back(td_root);
+    if (v == td_root) {
+        path.push_back(v);
         return path;
     }
 
-    while (parent_map.contains(c)) {
-        path.push_back(c);
-        c = parent_map.at(c);
+    unsigned long current = v;
+    while (current != td_root) {
+        path.push_back(current);
+        
+        unsigned long parent = parent_map.at(current);
+        current = parent;
     }
+    
     path.push_back(td_root);
-
     std::ranges::reverse(path);
-
+    
     return path;
 }
 
@@ -369,7 +386,7 @@ unsigned long Graph::lca(const unsigned long u, const unsigned long v) {
     const auto& v_anc = anc_map[v];
 
     const auto min_len = std::min(u_anc.size(), v_anc.size());
-    unsigned long lca = -1;
+    unsigned long lca = ULONG_MAX;
 
     for (int i = 0; i < min_len; i++) {
         if (u_anc[i] == v_anc[i]) {
@@ -380,7 +397,7 @@ unsigned long Graph::lca(const unsigned long u, const unsigned long v) {
         }
     }
 
-    if (lca == -1) {
+    if (lca == ULONG_MAX) {
         throw std::invalid_argument("Graph::lca() failed");
     }
 
@@ -393,7 +410,9 @@ unsigned long Graph::h2h_query(const unsigned long u, const unsigned long v) {
 
     unsigned long d = 1e9;
     const auto& dis_map = std::get<1>(*h2h);
-    for (const auto& pos_map = std::get<0>(*h2h); const unsigned long i : pos_map.at(x)) {
+    const auto& pos_map = std::get<0>(*h2h);
+
+    for (const unsigned long i : pos_map.at(x)) {
         d = std::min(d, dis_map.at(u)[i] + dis_map.at(v)[i]);
     }
 
@@ -419,17 +438,26 @@ std::tuple<Graph::Pos, Graph::Dis> Graph::get_h2h() {
     }
 
     for (const unsigned long v_bag : ordering) {
+
         auto& anc = anc_map.at(v_bag);
 
         for (const unsigned long bag_vertex : td_bags.at(v_bag)) {
             auto bag_pos_i = index_of(anc, bag_vertex);
             pos[v_bag].push_back(bag_pos_i);
         }
+    }
+
+    for (std::vector<unsigned long>& pos_arr : pos | std::views::values) {
+        std::ranges::sort(pos_arr);
+    }
+
+    for (const unsigned long v_bag : ordering) {
+        auto& anc = anc_map.at(v_bag);
+        auto& bag = td_bags.at(v_bag);    
 
         for (unsigned long i = 0; i < anc.size()-1; i++) {
 
             dis[v_bag].push_back(1e9);
-            auto& bag = td_bags.at(v_bag);
 
             for (unsigned long j = 0; j < bag.size()-1; j++) {
                 unsigned long d;
@@ -444,8 +472,7 @@ std::tuple<Graph::Pos, Graph::Dis> Graph::get_h2h() {
                     d = dis[v_bag_anc_i][dis_index];
                 }
 
-                d = std::min(dis[v_bag][i], td_weights.at(v_bag)[j] + d);
-                dis[v_bag][i] = d;
+                dis[v_bag][i] = std::min(dis[v_bag][i], td_weights.at(v_bag)[j] + d);
             }
         }
 

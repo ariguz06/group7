@@ -1,58 +1,83 @@
 #include <filesystem>
 #include <iostream>
+#include <iomanip>
+#include <sstream>
+#include <fstream>
+#include <chrono>
+#include <ctime>
 
-#include "../include/graph/Graph.h"
-#include "../include/util/Timer.h"
-// TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
+#include "graph/Graph.h"
+#include "util/Timer.h"
+#include "util/Oracle.h"
+
 int main() {
 
     auto t = Timer();
 
     std::vector<std::string> file_paths;
 
-    std::cout << "Select a graph: " << std::endl;
-    unsigned short index = 0;
     for (const auto& filepath : std::filesystem::directory_iterator("mtx")) {
-        std::cout << filepath.path() << " " <<  "(" << index << ")" << std::endl;
         file_paths.push_back(filepath.path());
-        index++;
     }
 
-    std::cin >> index;
+    auto now = std::chrono::system_clock::now();
+    std::time_t lt = std::chrono::system_clock::to_time_t(now);
+    std::tm tm = *std::localtime(&lt);
 
-    t.start();
-    Graph graph = Graph::from_mtx(file_paths[index], false, false);
-    t.stop();
 
-    std::cout << "Graph construction time elapsed: " << t.elapsed() << std::endl;
-    t.reset();
+    std::ostringstream oss;
+    oss << std::setfill('0')
+        << std::setw(2) << tm.tm_mon + 1   // MM
+        << std::setw(2) << tm.tm_mday      // DD
+        << std::setw(2) << tm.tm_hour      // HH
+        << std::setw(2) << tm.tm_min;      // MM
 
-    t.start();
-    const std::vector<unsigned long> order = graph.bfs_traversal(2);
-    t.stop();
+    std::string filename = "./out/" + oss.str() + ".txt";
 
-    std::cout << "BFS time elapsed: " << t.elapsed() << " with size " << order.size() << std::endl;
-    t.reset();
+    std::ofstream file(filename);
+    file << "Start\n";
 
-    t.start();
-    auto td_metrics = graph.get_td();
-    t.stop();
+    for (const std::string& filename : file_paths) {
+        t.reset();
+        t.start();
+        Graph graph = Graph::from_mtx(filename, false, false);    
+        t.stop();
 
-    auto &td_bags = std::get<1>(td_metrics);
+        file << "Graph construction time elapsed: " << t.elapsed() << std::endl;
+        t.reset();
 
-    std::cout << "Tree decomposition time elapsed: " << t.elapsed() << std::endl;
-    std::cout << "Treewidth: " << Graph::treewidth(td_bags) << std::endl;
+        t.start();
+        const std::vector<unsigned long> order = graph.bfs_traversal(6);
+        t.stop();
 
-    t.reset();
-    t.start();
-    graph.get_h2h();
-    t.stop();
+        std::cout << "BFS time elapsed: " << t.elapsed() << " with size " << order.size() << std::endl;
+        file << "BFS time elapsed: " << t.elapsed() << " with size " << order.size() << std::endl;
+        t.reset();
 
-    std::cout << "H2H construction time elapsed: " << t.elapsed() << std::endl;
+        t.start();
+        auto td_metrics = graph.get_td();
+        t.stop();
 
-    const auto dis = graph.h2h_query(1000000, 14);
+        auto &td_bags = std::get<1>(td_metrics);
 
-    std::cout << dis << std::endl;
+        file << "Tree decomposition time elapsed: " << t.elapsed() << std::endl;
+        file << "Treewidth: " << Graph::treewidth(td_bags) << std::endl;
+        t.reset();
+
+        t.start();
+        graph.get_h2h();
+        t.stop();
+
+        file << "H2H construction time elapsed: " << t.elapsed() << std::endl;
+
+        if (GraphUtil::verify_h2h(graph, graph.get_num_vertices(), 50, file)) {
+            file << "Valid H2H" << std::endl;
+        }
+
+        file << "End\n" << std::endl;
+    }    
+    
+    file.close();
 
 /* Benchmarking plan to be run on Unity Cluster w/ job script
 

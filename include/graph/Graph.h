@@ -22,8 +22,7 @@ public:
     using Pos = std::unordered_map<unsigned long, std::vector<unsigned long>>;
     using Dis = std::unordered_map<unsigned long, std::vector<unsigned long>>;
 
-    // key v denotes X(v), value psi_i, where 0 <= i < |X(v)|  denotes weight of each vertex in X(v) to v
-    // populated after sorting bags by ordering
+    using TreeDecompBagEdges = std::unordered_map<unsigned long, std::vector<Edge>>;
     using TreeDecompWeights = std::unordered_map<unsigned long, std::vector<unsigned long>>;
 
     Graph() = default;
@@ -33,6 +32,9 @@ public:
     static Graph from_mtx(const std::string &path, bool weighted=false, bool directed=false);
 
     [[nodiscard]] std::vector<unsigned long> bfs_traversal(unsigned long start);
+    unsigned long get_num_vertices() const {
+        return num_vertices;
+    }
 
     // returns adj, bags, root of tree decomposition
     std::tuple<TreeDecompAdj, TreeDecompBags, unsigned long> get_td();
@@ -64,6 +66,8 @@ private:
 
     TreeDecompAdj td_adj;
     TreeDecompBags td_bags;
+
+    TreeDecompBagEdges td_bag_edges;
     TreeDecompWeights td_weights;
 
     std::unique_ptr<std::tuple<Pos, Dis>> h2h;
