@@ -44,8 +44,7 @@ inline unsigned long dijkstra_oracle(
 inline bool verify_h2h(
     Graph& graph,                // 
     unsigned long n,
-    unsigned int samples,
-    std::ofstream& file
+    unsigned int samples
 ) {
     // Build H2H once
 

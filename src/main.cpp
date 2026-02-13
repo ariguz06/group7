@@ -43,7 +43,7 @@ int main() {
         Graph graph = Graph::from_mtx(filename, false, false);    
         t.stop();
 
-        file << "Graph construction time elapsed: " << t.elapsed() << std::endl;
+        file << "Graph " << filename << " construction time elapsed: " << t.elapsed() << std::endl;
         t.reset();
 
         t.start();
@@ -65,12 +65,12 @@ int main() {
         t.reset();
 
         t.start();
-        graph.get_h2h();
+        const auto& pos_dis = graph.get_h2h();
         t.stop();
 
         file << "H2H construction time elapsed: " << t.elapsed() << std::endl;
 
-        if (GraphUtil::verify_h2h(graph, graph.get_num_vertices(), 50, file)) {
+        if (GraphUtil::verify_h2h(graph, graph.get_num_vertices(), 50)) {
             file << "Valid H2H" << std::endl;
         }
 

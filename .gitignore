@@ -8,6 +8,10 @@ app
 out
 ./out
 ./mtx/road-road-usa.mtx
+./mtx/road-belgium-osm.mtx
+./mtx/road-germany-osm.mtx
+./mtx/netherlands-osm.mtx
+./mtx/road-roadNet-PA.mtx
 
 cmake-build-debug
 

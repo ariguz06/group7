@@ -29,7 +29,7 @@ public:
 
     Graph() = default;
 
-    explicit Graph(AdjMap adj);
+    explicit Graph(AdjMap adj, bool populate_buckets);
 
     static Graph from_mtx(const std::string &path, bool weighted=false, bool directed=false);
 

@@ -13,6 +13,7 @@
 #include <vector>
 #include <cassert>
 #include <utility>
+#include <algorithm>
 
 #include "graph/Graph.h"
 #include "util/Oracle.h"
@@ -20,12 +21,13 @@
 #include <iostream>
 #include <random>
 
-Graph::Graph(AdjMap adj) {
-    this->adj = AdjMap(std::move(adj));
+Graph::Graph(AdjMap adj, bool populate_buckets) : adj(std::move(adj)) {
+    if(populate_buckets) {
+        buckets.resize(100000);
 
-    buckets.resize(100000);
-    degrees.resize(this->adj.size());
-    bucket_position.resize(this->adj.size());
+        degrees.resize(this->adj.size());
+        bucket_position.resize(this->adj.size());
+    }
 }
 
 // This method generated with Claude Sonnet 4.5
@@ -71,8 +73,7 @@ Graph Graph::from_mtx(const std::string &path, bool weighted, bool directed) {
         }
     }
 
-    auto g = Graph(adj);
-    g.populate_buckets();
+    auto g = Graph(adj, false);
 
     return g;
 }
@@ -257,8 +258,8 @@ std::vector<unsigned long> Graph::get_random_ordering() const {
 }
 
 std::tuple<Graph::TreeDecompAdj, Graph::TreeDecompBags, unsigned long> Graph::get_td() {
-    auto h = Graph(adj);
-    h.num_vertices = 2642;
+    Graph h = Graph(adj, true);
+    h.num_vertices = adj.size();
     h.populate_buckets();
 
     std::vector<unsigned long> ordering(adj.size());
@@ -359,7 +360,6 @@ std::vector<unsigned long> Graph::get_top_down_ordering() const {
 }
 
 std::vector<unsigned long> Graph::get_bag_path(const unsigned long v) const {
-    unsigned long c = v;
     std::vector<unsigned long> path;
 
     if (v == td_root) {
