@@ -24,12 +24,12 @@ class Graphs : public testing::Test {
 
         adj[4].push_back(Edge(0, 1));
 
-        graph = new Graph(adj);
+        graph = Graph(adj);
     }
 
 protected:
     Graph::AdjMap adj;
-    Graph* graph = new Graph(adj);
+    Graph* graph = Graph(adj);
 };
 
 TEST_F(Graphs, EdgeExists) {

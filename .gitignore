@@ -7,11 +7,13 @@
 app
 out
 ./out
-./mtx/road-road-usa.mtx
-./mtx/road-belgium-osm.mtx
-./mtx/road-germany-osm.mtx
-./mtx/netherlands-osm.mtx
-./mtx/road-roadNet-PA.mtx
+mtx/road-road-usa.mtx
+mtx/road-belgium-osm.mtx
+mtx/road-germany-osm.mtx
+mtx/netherlands-osm.mtx
+mtx/road-roadNet-PA.mtx
+mtx/road-great-britain-osm.mtx
+mtx/road-netherlands-osm.mtx
 
 cmake-build-debug
 

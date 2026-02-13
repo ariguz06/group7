@@ -47,7 +47,7 @@ int main() {
         t.reset();
 
         t.start();
-        const std::vector<unsigned long> order = graph.bfs_traversal(6);
+        const std::vector<uint32_t> order = graph.bfs_traversal(6);
         t.stop();
 
         std::cout << "BFS time elapsed: " << t.elapsed() << " with size " << order.size() << std::endl;

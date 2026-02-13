@@ -59,8 +59,8 @@ Graph Graph::from_mtx(const std::string &path, bool weighted, bool directed) {
         if (line.empty() || line[0] == '%') continue;
         std::istringstream iss(line);
 
-        unsigned long u, v;
-        unsigned long w = 1;
+        uint32_t u, v;
+        uint32_t w = 1;
         iss >> u >> v;
         if (weighted)
             iss >> w;
@@ -78,16 +78,16 @@ Graph Graph::from_mtx(const std::string &path, bool weighted, bool directed) {
     return g;
 }
 
-std::vector<unsigned long> Graph::bfs_traversal(const unsigned long start) {
-    std::vector<unsigned long> order;
+std::vector<uint32_t> Graph::bfs_traversal(const uint32_t start) {
+    std::vector<uint32_t> order;
     std::vector visited(adj.size(), false);
 
-    std::queue<unsigned long> q;
+    std::queue<uint32_t> q;
     q.push(start);
     visited[start] = true;
 
     while (!q.empty()) {
-        unsigned long const u = q.front();
+        uint32_t const u = q.front();
         q.pop();
         order.push_back(u);
         for (const auto&[to, w] : adj.at(u)) {
@@ -103,8 +103,8 @@ std::vector<unsigned long> Graph::bfs_traversal(const unsigned long start) {
     return order;
 }
 
-std::vector<unsigned long> Graph::get_neighbors(const unsigned long vertex) const {
-    std::vector<unsigned long> neighbors;
+std::vector<uint32_t> Graph::get_neighbors(const uint32_t vertex) const {
+    std::vector<uint32_t> neighbors;
     for (const auto &[v, w] : adj.at(vertex)) {
         neighbors.push_back(v);
     }
@@ -112,8 +112,8 @@ std::vector<unsigned long> Graph::get_neighbors(const unsigned long vertex) cons
     return neighbors;
 }
 
-std::vector<unsigned long> Graph::get_star(const unsigned long vertex) const {
-    auto star = std::vector<unsigned long>();
+std::vector<uint32_t> Graph::get_star(const uint32_t vertex) const {
+    auto star = std::vector<uint32_t>();
     star.push_back(vertex);
 
     for (const auto &[to, w]: adj.at(vertex)) {
@@ -125,7 +125,7 @@ std::vector<unsigned long> Graph::get_star(const unsigned long vertex) const {
 
 void Graph::populate_buckets() {
     for (const auto &[u, edges] : adj) {
-        const unsigned long deg = edges.size();
+        const uint32_t deg = edges.size();
 
         buckets[deg].push_back(u);
         bucket_position[u] = std::prev(buckets[deg].end());
@@ -137,16 +137,16 @@ void Graph::populate_buckets() {
     }
 }
 
-void Graph::eliminate_vertex(const unsigned long v) {
+void Graph::eliminate_vertex(const uint32_t v) {
     const auto neighbors = get_neighbors(v);
 
     // fills in edges w/ updated weights
     for (size_t i = 0; i < neighbors.size(); i++) {
         for (size_t j = i + 1; j < neighbors.size(); j++) {
-            unsigned long u = neighbors[i];
-            unsigned long w = neighbors[j];
+            uint32_t u = neighbors[i];
+            uint32_t w = neighbors[j];
 
-            const unsigned long uvw_weight = get_edge_weight(u, v) + get_edge_weight(v, w);
+            const uint32_t uvw_weight = get_edge_weight(u, v) + get_edge_weight(v, w);
 
             auto& adj_w = adj.at(w);
             auto& adj_u = adj.at(u);
@@ -189,12 +189,12 @@ void Graph::eliminate_vertex(const unsigned long v) {
     num_vertices -= 1;
 
     // updates buckets after edge fill-in
-    for (unsigned long neighbor : neighbors) {
+    for (uint32_t neighbor : neighbors) {
 
         auto& to_erase = adj.at(neighbor);
 
-        const unsigned long d1 = degrees[neighbor];
-        const unsigned long d2 = to_erase.size();
+        const uint32_t d1 = degrees[neighbor];
+        const uint32_t d2 = to_erase.size();
 
         buckets[d1].erase(bucket_position[neighbor]);
         buckets[d2].push_front(neighbor);
@@ -204,50 +204,50 @@ void Graph::eliminate_vertex(const unsigned long v) {
 }
 
 // obtains vertex with minimum degree and pops it from its corresponding bucket
-unsigned long Graph::pop_min_degree_vertex() {
-    unsigned long min_bucket = 0;
+uint32_t Graph::pop_min_degree_vertex() {
+    uint32_t min_bucket = 0;
 
     while (buckets[min_bucket].empty()) {
         min_bucket++;
     }
 
-    const unsigned long v = buckets[min_bucket].front();
+    const uint32_t v = buckets[min_bucket].front();
     buckets[min_bucket].pop_front();
 
     return v;
 }
 
-bool Graph::edge_exists(const unsigned long u, const unsigned long v) const {
+bool Graph::edge_exists(const uint32_t u, const uint32_t v) const {
     const uint64_t edge = (static_cast<uint64_t>(u) << 32) | static_cast<uint64_t>(v);
     return edge_set.contains(edge);
 }
 
-unsigned long Graph::get_edge_weight(const unsigned long u, const unsigned long v) const {
+uint32_t Graph::get_edge_weight(const uint32_t u, const uint32_t v) const {
     if (u == v) return 0;
 
     for (const Edge& e : adj.at(u)) {
         if (e.to == v) return e.w;
     }
 
-    return ULONG_MAX;
+    return UINT32_MAX;
 }
 
-void Graph::add_edge_cache(const unsigned long u, const unsigned long v) {
+void Graph::add_edge_cache(const uint32_t u, const uint32_t v) {
     // first 32 bits encode u (first shifted left 32 bits), last 32 bits encode v
     const uint64_t edge_cache = (static_cast<uint64_t>(u) << 32) | static_cast<uint64_t>(v);
 
     edge_set.insert(edge_cache);
 }
 
-void Graph::remove_edge_cache(const unsigned long u, const unsigned long v) {
+void Graph::remove_edge_cache(const uint32_t u, const uint32_t v) {
     const uint64_t edge_cache = (static_cast<uint64_t>(u) << 32) | static_cast<uint64_t>(v);
 
     edge_set.erase(edge_cache);
 }
 
-std::vector<unsigned long> Graph::get_random_ordering() const {
-    std::vector<unsigned long> ordering(adj.size());
-    for (unsigned long u = 0; u < adj.size(); u++) {
+std::vector<uint32_t> Graph::get_random_ordering() const {
+    std::vector<uint32_t> ordering(adj.size());
+    for (uint32_t u = 0; u < adj.size(); u++) {
         ordering[u] = u;
     }
 
@@ -257,12 +257,12 @@ std::vector<unsigned long> Graph::get_random_ordering() const {
     return ordering;
 }
 
-std::tuple<Graph::TreeDecompAdj, Graph::TreeDecompBags, unsigned long> Graph::get_td() {
+std::tuple<Graph::TreeDecompAdj, Graph::TreeDecompBags, uint32_t> Graph::get_td() {
     Graph h = Graph(adj, true);
     h.num_vertices = adj.size();
     h.populate_buckets();
 
-    std::vector<unsigned long> ordering(adj.size());
+    std::vector<uint32_t> ordering(adj.size());
 
     td_bags.clear();
     td_adj.clear();
@@ -270,8 +270,8 @@ std::tuple<Graph::TreeDecompAdj, Graph::TreeDecompBags, unsigned long> Graph::ge
     // const auto rand_ordering = get_random_ordering();
 
     for (int i = 0; i < adj.size(); i++) {
-        unsigned long v = h.pop_min_degree_vertex(); // can be substituted with other heuristic
-        // unsigned long v = rand_ordering[i];
+        uint32_t v = h.pop_min_degree_vertex(); // can be substituted with other heuristic
+        // uint32_t v = rand_ordering[i];
 
         td_bags[v] = h.get_star(v);
         h.eliminate_vertex(v);
@@ -283,20 +283,20 @@ std::tuple<Graph::TreeDecompAdj, Graph::TreeDecompBags, unsigned long> Graph::ge
         }
     }
 
-    for (unsigned long v : adj | std::views::keys) {
+    for (uint32_t v : adj | std::views::keys) {
         const auto& bag = td_bags.at(v);
 
-        unsigned long min_u = v;
-        unsigned long best = ULONG_MAX;
+        uint32_t min_u = v;
+        uint32_t best = UINT32_MAX;
 
-        for (const unsigned long u : bag) {
+        for (const uint32_t u : bag) {
             if (u != v && ordering[u] < best) {
                 best = ordering[u];
                 min_u = u;
             }
         }
 
-        if (best == ULONG_MAX) {
+        if (best == UINT32_MAX) {
             td_root = v;
             parent_map[v] = v;
             continue;
@@ -310,7 +310,7 @@ std::tuple<Graph::TreeDecompAdj, Graph::TreeDecompBags, unsigned long> Graph::ge
 
     for (auto& [v, bag] : td_bags) {
 
-        std::ranges::sort(bag, [&](const unsigned long a, const unsigned long b) {return ordering[a] > ordering[b];});
+        std::ranges::sort(bag, [&](const uint32_t a, const uint32_t b) {return ordering[a] > ordering[b];});
 
         if (v == td_root) {
             td_weights[v].push_back(0);
@@ -319,7 +319,7 @@ std::tuple<Graph::TreeDecompAdj, Graph::TreeDecompBags, unsigned long> Graph::ge
 
         const auto& edges = h.td_bag_edges.at(v);
 
-        for (const unsigned long u : bag) {
+        for (const uint32_t u : bag) {
             
             for (const auto&[to, w] : edges) {
                 if (to == u && u != v) {
@@ -334,21 +334,21 @@ std::tuple<Graph::TreeDecompAdj, Graph::TreeDecompBags, unsigned long> Graph::ge
     return {td_adj, td_bags, td_root};
 }
 
-std::vector<unsigned long> Graph::get_top_down_ordering() const {
-    std::vector<unsigned long> ordering;
+std::vector<uint32_t> Graph::get_top_down_ordering() const {
+    std::vector<uint32_t> ordering;
 
-    std::queue<unsigned long> q;
-    std::unordered_set<unsigned long> visited;
+    std::queue<uint32_t> q;
+    std::unordered_set<uint32_t> visited;
 
     q.push(td_root);
     visited.insert(td_root);
 
     while (!q.empty()) {
-        unsigned long u = q.front();
+        uint32_t u = q.front();
         q.pop();
         ordering.push_back(u);
 
-        for (const unsigned long neighbor : td_adj.at(u)) {
+        for (const uint32_t neighbor : td_adj.at(u)) {
             if (!visited.contains(neighbor)) {
                 q.push(neighbor);
                 visited.insert(neighbor);
@@ -359,19 +359,19 @@ std::vector<unsigned long> Graph::get_top_down_ordering() const {
     return ordering;
 }
 
-std::vector<unsigned long> Graph::get_bag_path(const unsigned long v) const {
-    std::vector<unsigned long> path;
+std::vector<uint32_t> Graph::get_bag_path(const uint32_t v) const {
+    std::vector<uint32_t> path;
 
     if (v == td_root) {
         path.push_back(v);
         return path;
     }
 
-    unsigned long current = v;
+    uint32_t current = v;
     while (current != td_root) {
         path.push_back(current);
         
-        unsigned long parent = parent_map.at(current);
+        uint32_t parent = parent_map.at(current);
         current = parent;
     }
     
@@ -381,12 +381,12 @@ std::vector<unsigned long> Graph::get_bag_path(const unsigned long v) const {
     return path;
 }
 
-unsigned long Graph::lca(const unsigned long u, const unsigned long v) {
-    const auto& u_anc = anc_map[u];
-    const auto& v_anc = anc_map[v];
+uint32_t Graph::lca(const uint32_t u, const uint32_t v) {
+    const auto& u_anc = get_bag_path(u);
+    const auto& v_anc = get_bag_path(v);
 
     const auto min_len = std::min(u_anc.size(), v_anc.size());
-    unsigned long lca = ULONG_MAX;
+    uint32_t lca = UINT32_MAX;
 
     for (int i = 0; i < min_len; i++) {
         if (u_anc[i] == v_anc[i]) {
@@ -397,30 +397,30 @@ unsigned long Graph::lca(const unsigned long u, const unsigned long v) {
         }
     }
 
-    if (lca == ULONG_MAX) {
+    if (lca == UINT32_MAX) {
         throw std::invalid_argument("Graph::lca() failed");
     }
 
     return lca;
 }
 
-unsigned long Graph::h2h_query(const unsigned long u, const unsigned long v) {
+uint32_t Graph::h2h_query(const uint32_t u, const uint32_t v) {
 
     const auto x = lca(u, v);
 
-    unsigned long d = 1e9;
-    const auto& dis_map = std::get<1>(*h2h);
-    const auto& pos_map = std::get<0>(*h2h);
+    uint32_t d = 1e9;
+    const auto& dis_map = std::get<1>(h2h);
+    const auto& pos_map = std::get<0>(h2h);
 
-    for (const unsigned long i : pos_map.at(x)) {
+    for (const uint32_t i : pos_map.at(x)) {
         d = std::min(d, dis_map.at(u)[i] + dis_map.at(v)[i]);
     }
 
     return d;
 }
 
-unsigned long Graph::index_of(const std::vector<unsigned long>& b, const unsigned long v) {
-    for (unsigned long i = 0; i < b.size(); ++i) {
+uint32_t Graph::index_of(const std::vector<uint32_t>& b, const uint32_t v) {
+    for (uint32_t i = 0; i < b.size(); ++i) {
         if (b[i] == v) {return i;}
     }
 
@@ -428,46 +428,34 @@ unsigned long Graph::index_of(const std::vector<unsigned long>& b, const unsigne
 }
 
 std::tuple<Graph::Pos, Graph::Dis> Graph::get_h2h() {
-    Pos pos;
-    Dis dis;
+    Pos pos(td_bags.size());
+    Dis dis(td_bags.size());
 
-    const std::vector<unsigned long> ordering = get_top_down_ordering();
+    const std::vector<uint32_t> ordering = get_top_down_ordering();
 
-    for (const unsigned long bag : ordering) {
-        anc_map[bag] = get_bag_path(bag);
-    }
-
-    for (const unsigned long v_bag : ordering) {
-
-        auto& anc = anc_map.at(v_bag);
-
-        for (const unsigned long bag_vertex : td_bags.at(v_bag)) {
+    for (const uint32_t v_bag : ordering) {
+        const auto& anc = get_bag_path(v_bag);
+        auto& bag = td_bags.at(v_bag); 
+    
+        for (const uint32_t bag_vertex : bag) {
             auto bag_pos_i = index_of(anc, bag_vertex);
             pos[v_bag].push_back(bag_pos_i);
         }
-    }
+        std::ranges::sort(pos[v_bag]);
 
-    for (std::vector<unsigned long>& pos_arr : pos | std::views::values) {
-        std::ranges::sort(pos_arr);
-    }
-
-    for (const unsigned long v_bag : ordering) {
-        auto& anc = anc_map.at(v_bag);
-        auto& bag = td_bags.at(v_bag);    
-
-        for (unsigned long i = 0; i < anc.size()-1; i++) {
+        for (uint32_t i = 0; i < anc.size()-1; i++) {
 
             dis[v_bag].push_back(1e9);
 
-            for (unsigned long j = 0; j < bag.size()-1; j++) {
-                unsigned long d;
-                unsigned long xj_vertex = bag.at(j);
+            for (uint32_t j = 0; j < bag.size()-1; j++) {
+                uint32_t d;
+                uint32_t xj_vertex = bag.at(j);
 
                 if (pos[v_bag][j] > i) {
                     d = dis[xj_vertex][i];
                 } else {
-                    unsigned long v_bag_anc_i = anc_map.at(v_bag)[i];
-                    const unsigned long dis_index = pos[v_bag][j];
+                    uint32_t v_bag_anc_i = anc[i];
+                    const uint32_t dis_index = pos[v_bag][j];
 
                     d = dis[v_bag_anc_i][dis_index];
                 }
@@ -477,15 +465,17 @@ std::tuple<Graph::Pos, Graph::Dis> Graph::get_h2h() {
         }
 
         dis[v_bag].push_back(0);
+        anc_map.erase(v_bag);
     }
 
-    h2h = std::make_unique<std::tuple<Pos, Dis>>(std::make_tuple(pos, dis));
-    return *h2h;
+    h2h = {std::move(pos), std::move(dis)};
+
+    return h2h;
 }
 
 
-unsigned long Graph::treewidth(TreeDecompBags& bags) {
-    unsigned long tw = 0;
+uint32_t Graph::treewidth(TreeDecompBags& bags) {
+    uint32_t tw = 0;
 
     for (auto &bag: bags | std::views::values) {
         if (bag.size() > tw) {
