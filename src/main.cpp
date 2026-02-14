@@ -58,7 +58,7 @@ int main() {
         auto td_metrics = graph.get_td();
         t.stop();
 
-        auto &td_bags = std::get<1>(td_metrics);
+        auto& td_bags = std::get<1>(td_metrics);
 
         file << "Tree decomposition time elapsed: " << t.elapsed() << std::endl;
         file << "Treewidth: " << Graph::treewidth(td_bags) << std::endl;
@@ -69,6 +69,7 @@ int main() {
         t.stop();
 
         file << "H2H construction time elapsed: " << t.elapsed() << std::endl;
+        file << "Treeheight: " << graph.get_treeheight() << std::endl;
 
         if (GraphUtil::verify_h2h(graph, graph.get_num_vertices(), 50)) {
             file << "Valid H2H across 50 samples" << std::endl;
