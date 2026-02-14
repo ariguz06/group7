@@ -259,13 +259,24 @@ std::vector<uint32_t> Graph::get_random_ordering() const {
 
 std::tuple<Graph::TreeDecompAdj, Graph::TreeDecompBags, uint32_t> Graph::get_td() {
     Graph h = Graph(adj, true);
-    h.num_vertices = adj.size();
-    h.populate_buckets();
 
-    std::vector<uint32_t> ordering(adj.size());
+    const auto adj_size = adj.size();
+
+    h.num_vertices = adj_size;
+    h.populate_buckets();
+    h.td_bag_edges.resize(adj_size);
+
+    std::vector<uint32_t> ordering(adj_size);
+    parent_map.resize(adj_size);
+
+    td_bag_edges.resize(adj_size);
+    td_weights.resize(adj_size);
 
     td_bags.clear();
     td_adj.clear();
+
+    td_adj.resize(adj_size);
+    td_bags.resize(adj_size);
 
     // const auto rand_ordering = get_random_ordering();
 
@@ -308,7 +319,9 @@ std::tuple<Graph::TreeDecompAdj, Graph::TreeDecompBags, uint32_t> Graph::get_td(
         parent_map[v] = min_u;
     }
 
-    for (auto& [v, bag] : td_bags) {
+    for (size_t v = 0; v < td_bags.size(); v++) {
+
+        auto& bag = td_bags[v];
 
         std::ranges::sort(bag, [&](const uint32_t a, const uint32_t b) {return ordering[a] > ordering[b];});
 
@@ -371,7 +384,7 @@ std::vector<uint32_t> Graph::get_bag_path(const uint32_t v) const {
     while (current != td_root) {
         path.push_back(current);
         
-        uint32_t parent = parent_map.at(current);
+        uint32_t parent = parent_map[current];
         current = parent;
     }
     
@@ -465,7 +478,6 @@ std::tuple<Graph::Pos, Graph::Dis> Graph::get_h2h() {
         }
 
         dis[v_bag].push_back(0);
-        anc_map.erase(v_bag);
     }
 
     h2h = {std::move(pos), std::move(dis)};
@@ -473,11 +485,29 @@ std::tuple<Graph::Pos, Graph::Dis> Graph::get_h2h() {
     return h2h;
 }
 
+uint32_t Graph::get_h2h_size() {
+    const auto& pos = std::get<0>(h2h);
+    const auto& dis = std::get<1>(h2h);
+
+    unsigned long pos_sum = sizeof(pos);
+    unsigned long dis_sum = sizeof(dis);
+
+    for (const std::vector<uint32_t>& pos_arr : pos) {
+        pos_sum += sizeof(pos_arr);
+    }
+
+    for (const std::vector<uint32_t>& dis_arr : dis) {
+        dis_sum += sizeof(dis_arr);
+    }
+
+    return pos_sum + dis_sum;
+}
+
 
 uint32_t Graph::treewidth(TreeDecompBags& bags) {
     uint32_t tw = 0;
 
-    for (auto &bag: bags | std::views::values) {
+    for (auto &bag: bags) {
         if (bag.size() > tw) {
             tw = bag.size();
         }
@@ -485,3 +515,5 @@ uint32_t Graph::treewidth(TreeDecompBags& bags) {
 
     return tw - 1;
 }
+
+uint32_t Graph::get_treeheight() {return 0;}

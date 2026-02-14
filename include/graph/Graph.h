@@ -18,14 +18,14 @@ public:
 
     using AdjMap = std::unordered_map<uint32_t, std::vector<Edge>>;
 
-    using TreeDecompAdj = std::unordered_map<uint32_t, std::vector<uint32_t>>; // matrix of edges in TD. key denotes bag root v, edge to bag root u
+    using TreeDecompAdj = std::vector<std::vector<uint32_t>>; // matrix of edges in TD. key denotes bag root v, edge to bag root u
     using TreeDecompBags = TreeDecompAdj; // key: bag root v, value: all vertices in X(v) but without weights
 
     using Pos = std::vector<std::vector<uint32_t>>;
     using Dis = std::vector<std::vector<uint32_t>>;
 
-    using TreeDecompBagEdges = std::unordered_map<uint32_t, std::vector<Edge>>;
-    using TreeDecompWeights = std::unordered_map<uint32_t, std::vector<uint32_t>>;
+    using TreeDecompBagEdges = std::vector<std::vector<Edge>>;
+    using TreeDecompWeights = std::vector<std::vector<uint32_t>>;
 
     Graph() = default;
 
@@ -40,6 +40,7 @@ public:
 
     // returns adj, bags, root of tree decomposition
     std::tuple<TreeDecompAdj, TreeDecompBags, uint32_t> get_td();
+    uint get_treeheight();
 
     std::tuple<Pos, Dis> get_h2h();
     [[nodiscard]] std::vector<uint32_t> get_top_down_ordering() const;
@@ -73,10 +74,12 @@ private:
     TreeDecompBagEdges td_bag_edges;
     TreeDecompWeights td_weights;
 
-    std::unordered_map<uint32_t, std::vector<uint32_t>> anc_map;
-    std::unordered_map<uint32_t, uint32_t> parent_map;
+    std::vector<uint32_t> parent_map;
 
     uint32_t td_root = 1e9;
+
+    float avg_degree;
+    std::vector<std::vector<uint32_t>> vertex_betweenness;
 
     std::tuple<Pos, Dis> h2h;
 

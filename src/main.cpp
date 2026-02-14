@@ -71,21 +71,14 @@ int main() {
         file << "H2H construction time elapsed: " << t.elapsed() << std::endl;
 
         if (GraphUtil::verify_h2h(graph, graph.get_num_vertices(), 50)) {
-            file << "Valid H2H" << std::endl;
+            file << "Valid H2H across 50 samples" << std::endl;
+            file << "H2H size: " << graph.get_h2h_size() << std::endl;
         }
 
         file << "End\n" << std::endl;
     }    
     
     file.close();
-
-/* Benchmarking plan to be run on Unity Cluster w/ job script
-
-TD benchmark - compute TDs + width of every graph
-H2H construction time + shortest distance query times (random sample)
-Dijkstra's shortest distance query times (random sample)
-
-*/
 
     return 0;
 }
