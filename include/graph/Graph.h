@@ -40,13 +40,13 @@ public:
 
     // returns adj, bags, root of tree decomposition
     std::tuple<TreeDecompAdj, TreeDecompBags, uint32_t> get_td();
-    uint get_treeheight();
 
     std::tuple<Pos, Dis> get_h2h();
     [[nodiscard]] std::vector<uint32_t> get_top_down_ordering() const;
     [[nodiscard]] std::vector<uint32_t> get_bag_path(uint32_t v) const;
     [[nodiscard]] uint32_t h2h_query(uint32_t u, uint32_t v);
     uint32_t get_h2h_size();
+    size_t get_treeheight();
 
     void populate_buckets();
 
@@ -77,6 +77,7 @@ private:
     std::vector<uint32_t> parent_map;
 
     uint32_t td_root = 1e9;
+    size_t treeheight;
 
     float avg_degree;
     std::vector<std::vector<uint32_t>> vertex_betweenness;

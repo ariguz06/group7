@@ -449,6 +449,8 @@ std::tuple<Graph::Pos, Graph::Dis> Graph::get_h2h() {
     for (const uint32_t v_bag : ordering) {
         const auto& anc = get_bag_path(v_bag);
         auto& bag = td_bags.at(v_bag); 
+
+        treeheight = std::max(anc.size(), treeheight) - 1;
     
         for (const uint32_t bag_vertex : bag) {
             auto bag_pos_i = index_of(anc, bag_vertex);
@@ -477,7 +479,7 @@ std::tuple<Graph::Pos, Graph::Dis> Graph::get_h2h() {
             }
         }
 
-        dis[v_bag].push_back(0);
+       dis[v_bag].push_back(0);
     }
 
     h2h = {std::move(pos), std::move(dis)};
@@ -516,4 +518,6 @@ uint32_t Graph::treewidth(TreeDecompBags& bags) {
     return tw - 1;
 }
 
-uint32_t Graph::get_treeheight() {return 0;}
+size_t Graph::get_treeheight() {
+    return treeheight;
+}
