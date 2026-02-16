@@ -17,7 +17,7 @@ int main() {
     std::vector<std::string> file_paths;
 
     for (const auto& filepath : std::filesystem::directory_iterator("mtx")) {
-        file_paths.push_back(filepath.path());
+        file_paths.push_back(filepath.path().string());
     }
 
     auto now = std::chrono::system_clock::now();
