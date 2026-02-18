@@ -23,9 +23,9 @@
 
 Graph::Graph(AdjMap adj, bool populate_buckets) : adj(std::move(adj)) {
     if(populate_buckets) {
-        buckets.resize(100000);
+        buckets.resize(10000);
 
-        degrees.resize(this->adj.size());
+        heuristic_vals.resize(this->adj.size());
         bucket_position.resize(this->adj.size());
     }
 }
@@ -125,20 +125,66 @@ std::vector<uint32_t> Graph::get_star(const uint32_t vertex) const {
 
 void Graph::populate_buckets() {
     for (const auto &[u, edges] : adj) {
-        const uint32_t deg = edges.size();
+        uint32_t deg = edges.size();
 
         buckets[deg].push_back(u);
         bucket_position[u] = std::prev(buckets[deg].end());
-        degrees[u] = deg;
+        heuristic_vals[u] = deg;
 
-        for (const auto&[to, w] : edges) {
-            add_edge_cache(u, to);
-        }
+        // for (const auto&[to, w] : edges) {
+        //     add_edge_cache(u, to);
+        // }
     }
 }
 
-void Graph::eliminate_vertex(const uint32_t v) {
-    const auto neighbors = get_neighbors(v);
+void Graph::populate_buckets_min_fill() {
+    for (const auto &[u, edges] : adj) {
+        for (const auto& [to, w] : edges) {
+            add_edge_cache(u, to);
+        }
+    }
+
+    for (const auto &[u, edges] : adj) {
+        uint32_t fill_num = get_fill(u);
+
+        buckets[fill_num].push_back(u);
+        bucket_position[u] = std::prev(buckets[fill_num].end());
+        heuristic_vals[u] = fill_num;
+    }
+}
+
+void Graph::clear_buckets() {
+    buckets.clear();
+    
+    heuristic_vals.clear();
+}
+
+// fill := number of 'missing edges' between neighbors to make a clique 
+
+// is it possible to 
+uint32_t Graph::get_fill(uint32_t v) {
+    uint32_t fill = 0;
+    const auto& neighbors = get_neighbors(v);
+
+    for(size_t i = 0; i < neighbors.size(); i++) {
+        for(size_t j = i + 1; j < neighbors.size(); j++) {
+            uint32_t u = neighbors[i];
+            uint32_t w = neighbors[j];
+
+            if (!edge_exists(u, w)) {
+                fill++;
+            }
+        }
+    }
+
+    return fill;
+}
+
+void Graph::eliminate_vertex(const uint32_t v, bool is_min_degree) {
+    if(v == 121718) {
+        std::cout << adj.size();
+    }
+    const auto& neighbors = get_neighbors(v);
 
     // fills in edges w/ updated weights
     for (size_t i = 0; i < neighbors.size(); i++) {
@@ -188,23 +234,30 @@ void Graph::eliminate_vertex(const uint32_t v) {
     adj.erase(v);
     num_vertices -= 1;
 
-    // updates buckets after edge fill-in
+    // updates bucket value of neighbors after edge fill-in
     for (uint32_t neighbor : neighbors) {
-
-        auto& to_erase = adj.at(neighbor);
-
-        const uint32_t d1 = degrees[neighbor];
-        const uint32_t d2 = to_erase.size();
+        const uint32_t d1 = heuristic_vals[neighbor];
+        const uint32_t d2 = get_fill(neighbor);
 
         buckets[d1].erase(bucket_position[neighbor]);
         buckets[d2].push_front(neighbor);
         bucket_position[neighbor] = buckets[d2].begin();
-        degrees[neighbor] = d2;
+        heuristic_vals[neighbor] = d2;
     }
 }
 
+void Graph::update_bucket(const uint32_t u, const uint32_t heuristic_val) {
+    const uint32_t old_bucket = heuristic_vals[u];
+    const uint32_t new_bucket = heuristic_val;
+
+    buckets[old_bucket].erase(bucket_position[old_bucket]);
+    buckets[new_bucket].push_front(u);
+    bucket_position[u] = buckets[new_bucket].begin();
+    heuristic_vals[u] = new_bucket;
+}
+
 // obtains vertex with minimum degree and pops it from its corresponding bucket
-uint32_t Graph::pop_min_degree_vertex() {
+uint32_t Graph::pop_next_vertex() {
     uint32_t min_bucket = 0;
 
     while (buckets[min_bucket].empty()) {
@@ -245,6 +298,7 @@ void Graph::remove_edge_cache(const uint32_t u, const uint32_t v) {
     edge_set.erase(edge_cache);
 }
 
+// DNF in reasonable amount of time even on very small graph
 std::vector<uint32_t> Graph::get_random_ordering() const {
     std::vector<uint32_t> ordering(adj.size());
     for (uint32_t u = 0; u < adj.size(); u++) {
@@ -263,7 +317,8 @@ std::tuple<Graph::TreeDecompAdj, Graph::TreeDecompBags, uint32_t> Graph::get_td(
     const auto adj_size = adj.size();
 
     h.num_vertices = adj_size;
-    h.populate_buckets();
+    // h.populate_buckets();
+    h.populate_buckets_min_fill();
     h.td_bag_edges.resize(adj_size);
 
     std::vector<uint32_t> ordering(adj_size);
@@ -278,14 +333,11 @@ std::tuple<Graph::TreeDecompAdj, Graph::TreeDecompBags, uint32_t> Graph::get_td(
     td_adj.resize(adj_size);
     td_bags.resize(adj_size);
 
-    // const auto rand_ordering = get_random_ordering();
-
-    for (int i = 0; i < adj.size(); i++) {
-        uint32_t v = h.pop_min_degree_vertex(); // can be substituted with other heuristic
-        // uint32_t v = rand_ordering[i];
+    for (size_t i = 0; i < adj.size(); i++) {
+        uint32_t v = h.pop_next_vertex();
 
         td_bags[v] = h.get_star(v);
-        h.eliminate_vertex(v);
+        h.eliminate_vertex(v, true);
 
         ordering[v] = i;
 
@@ -401,7 +453,7 @@ uint32_t Graph::lca(const uint32_t u, const uint32_t v) {
     const auto min_len = std::min(u_anc.size(), v_anc.size());
     uint32_t lca = UINT32_MAX;
 
-    for (int i = 0; i < min_len; i++) {
+    for (size_t i = 0; i < min_len; i++) {
         if (u_anc[i] == v_anc[i]) {
             lca = u_anc[i];
         }

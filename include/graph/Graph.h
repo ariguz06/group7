@@ -49,11 +49,14 @@ public:
     size_t get_treeheight();
 
     void populate_buckets();
+    void populate_buckets_min_fill();
+    void clear_buckets();
+    uint32_t get_fill(uint32_t u);
 
     [[nodiscard]] bool edge_exists(uint32_t u, uint32_t v) const;
-    [[nodiscard]] uint32_t pop_min_degree_vertex();
+    [[nodiscard]] uint32_t pop_next_vertex();
     [[nodiscard]] std::vector<uint32_t> get_star(uint32_t vertex) const;
-    void eliminate_vertex(uint32_t v);
+    void eliminate_vertex(uint32_t v, bool is_min_degree);
     static uint32_t treewidth(TreeDecompBags& bags);
 
     [[nodiscard]] std::vector<uint32_t> get_neighbors(uint32_t vertex) const;
@@ -64,6 +67,7 @@ public:
 
     [[nodiscard]] std::vector<uint32_t> get_random_ordering() const;
     uint32_t num_vertices = 0;
+    uint32_t num_edges = 0;
 
 private:
     AdjMap adj{};
@@ -87,12 +91,13 @@ private:
     std::unordered_set<uint64_t> edge_set;
 
     std::vector<std::list<uint32_t>> buckets;
-    std::vector<uint32_t> degrees;
+    std::vector<uint32_t> heuristic_vals;
     std::vector<std::list<uint32_t>::iterator> bucket_position;
 
     static uint32_t index_of(const std::vector<uint32_t>&, uint32_t v);
 
     uint32_t lca(uint32_t u, uint32_t v);
+    void update_bucket(uint32_t u, uint32_t heuristic_val);
 };
 
 #endif //GROUP7_GRAPH_H
